@@ -1,0 +1,1 @@
+# Prevent GitHub Pages from using Jekyll, which ignores folders starting with an underscore (like _next)
