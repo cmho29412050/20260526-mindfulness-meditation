@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "export",
+  basePath: "/20260526-mindfulness-meditation",
   typescript: {
     ignoreBuildErrors: true,
   },
