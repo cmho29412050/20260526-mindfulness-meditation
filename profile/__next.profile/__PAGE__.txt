@@ -1,9 +1,9 @@
 1:"$Sreact.fragment"
-2:I[60181,["/20260526-mindfulness-meditation/_next/static/chunks/00ce963erb4z0.js","/20260526-mindfulness-meditation/_next/static/chunks/012431vdg5jn..js","/20260526-mindfulness-meditation/_next/static/chunks/07qbntfrxh2b5.js"],"ClientPageRoot"]
-3:I[56833,["/20260526-mindfulness-meditation/_next/static/chunks/00ce963erb4z0.js","/20260526-mindfulness-meditation/_next/static/chunks/012431vdg5jn..js","/20260526-mindfulness-meditation/_next/static/chunks/07qbntfrxh2b5.js","/20260526-mindfulness-meditation/_next/static/chunks/0-03-soe5~~kh.js"],"default"]
-6:I[30333,["/20260526-mindfulness-meditation/_next/static/chunks/00ce963erb4z0.js","/20260526-mindfulness-meditation/_next/static/chunks/012431vdg5jn..js","/20260526-mindfulness-meditation/_next/static/chunks/07qbntfrxh2b5.js"],"OutletBoundary"]
+2:I[47257,["/20260526-mindfulness-meditation/_next/static/chunks/0if5zb0oxa9wg.js","/20260526-mindfulness-meditation/_next/static/chunks/17az~c8ouai_j.js","/20260526-mindfulness-meditation/_next/static/chunks/00-csyj9a6t-x.js"],"ClientPageRoot"]
+3:I[2153,["/20260526-mindfulness-meditation/_next/static/chunks/0if5zb0oxa9wg.js","/20260526-mindfulness-meditation/_next/static/chunks/17az~c8ouai_j.js","/20260526-mindfulness-meditation/_next/static/chunks/00-csyj9a6t-x.js","/20260526-mindfulness-meditation/_next/static/chunks/0ge3gubat2_4d.js"],"default"]
+6:I[97367,["/20260526-mindfulness-meditation/_next/static/chunks/0if5zb0oxa9wg.js","/20260526-mindfulness-meditation/_next/static/chunks/17az~c8ouai_j.js","/20260526-mindfulness-meditation/_next/static/chunks/00-csyj9a6t-x.js"],"OutletBoundary"]
 7:"$Sreact.suspense"
-0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/20260526-mindfulness-meditation/_next/static/chunks/0-03-soe5~~kh.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"r_zgH5gKDh_QigoaIvKcS"}
+0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/20260526-mindfulness-meditation/_next/static/chunks/0ge3gubat2_4d.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"oMfTPnOwoFncVe61-eKnI"}
 4:{}
 5:"$0:rsc:props:children:0:props:serverProvidedParams:params"
 8:null
