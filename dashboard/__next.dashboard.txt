@@ -2,4 +2,4 @@
 2:I[39756,["/20260526-mindfulness-meditation/_next/static/chunks/0if5zb0oxa9wg.js","/20260526-mindfulness-meditation/_next/static/chunks/17az~c8ouai_j.js","/20260526-mindfulness-meditation/_next/static/chunks/00-csyj9a6t-x.js"],"default"]
 3:I[37457,["/20260526-mindfulness-meditation/_next/static/chunks/0if5zb0oxa9wg.js","/20260526-mindfulness-meditation/_next/static/chunks/17az~c8ouai_j.js","/20260526-mindfulness-meditation/_next/static/chunks/00-csyj9a6t-x.js"],"default"]
 4:[]
-0:{"rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"isPartial":false,"staleTime":300,"varyParams":"$W4","buildId":"kRYdg-AZVtGi6GRelle-V"}
+0:{"rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"isPartial":false,"staleTime":300,"varyParams":"$W4","buildId":"78IfZqbNNcj7RNQlPmNsG"}
