@@ -25,7 +25,7 @@ export function SessionSetup({
   onBgmChange,
   onStartSession,
 }: SessionSetupProps) {
-  const durations = [3, 15, 30, 45, 60]
+  const durations = [3, 15, 30, 60, 0]
  
   return (
     <motion.div
@@ -55,13 +55,13 @@ export function SessionSetup({
                 whileHover={{ scale: 1.05, backgroundColor: "rgba(15, 23, 42, 0.05)" }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => onDurationChange(mins * 60)}
-                className={`py-2 rounded-full border transition-all duration-300 backdrop-blur-md text-xs font-normal cursor-pointer text-center w-full ${
+                className={`py-2 rounded-full border transition-all duration-300 backdrop-blur-md text-[11px] sm:text-xs font-normal cursor-pointer text-center w-full ${
                   isSelected
                     ? "border-sky-500 bg-sky-100/60 text-sky-700 shadow-[0_0_15px_rgba(14,165,233,0.15)] font-medium"
                     : "border-slate-200 bg-slate-50/50 text-slate-600 hover:text-slate-800"
                 }`}
               >
-                {mins} 分
+                {mins === 0 ? "無限制" : `${mins} 分`}
               </motion.button>
             )
           })}
@@ -76,7 +76,7 @@ export function SessionSetup({
         <div className="grid grid-cols-3 gap-2 w-full px-1">
           {[
             { id: "silent", label: "無聲", icon: VolumeX },
-            { id: "piano", label: "鋼琴音樂", icon: Music },
+            { id: "guide", label: "有聲指導", icon: Music },
             { id: "bowl", label: "頌缽磬音", icon: Bell },
             { id: "forest", label: "蟲鳴鳥叫", icon: Trees },
             { id: "ocean", label: "海浪聲音", icon: Waves },

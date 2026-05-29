@@ -6,39 +6,65 @@ import { Home, BarChart2, User } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ""
+
 export function Navbar() {
   const pathname = usePathname()
 
   const [bgmType, setBgmType] = useState<string>("silent")
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null)
+  const gainNodeRef = useRef<GainNode | null>(null)
+  const currentSrcRef = useRef<string | null>(null)
+  const audioBufferCache = useRef<Record<string, AudioBuffer>>({})
   const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  useEffect(() => {
-    if (typeof window === "undefined") return
+  const stopBgm = () => {
+    if (fadeIntervalRef.current) {
+      clearInterval(fadeIntervalRef.current)
+      fadeIntervalRef.current = null
+    }
 
-    // Create persistent audio element
-    const audio = new Audio()
-    audio.loop = true
-    audioRef.current = audio
+    const source = sourceNodeRef.current
+    const gainNode = gainNodeRef.current
 
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current.src = ""
-        audioRef.current = null
+    if (source && gainNode && audioCtxRef.current) {
+      try {
+        const ctx = audioCtxRef.current
+        gainNode.gain.cancelScheduledValues(ctx.currentTime)
+        gainNode.gain.setValueAtTime(gainNode.gain.value, ctx.currentTime)
+        gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.2)
+
+        setTimeout(() => {
+          try {
+            source.stop()
+          } catch (e) {
+            // Already stopped
+          }
+        }, 1200)
+      } catch (e) {
+        try {
+          source.stop()
+        } catch (err) {}
       }
-      if (fadeIntervalRef.current) {
-        clearInterval(fadeIntervalRef.current)
+    }
+
+    sourceNodeRef.current = null
+    currentSrcRef.current = null
+  }
+
+  useEffect(() => {
+    return () => {
+      stopBgm()
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close().catch((e) => console.error("AudioContext close failed:", e))
+        audioCtxRef.current = null
       }
     }
   }, [])
 
   const selectBgm = (type: string, skipEventDispatch = false) => {
-    if (!audioRef.current) return
-
-    if (fadeIntervalRef.current) {
-      clearInterval(fadeIntervalRef.current)
-    }
+    stopBgm()
 
     setBgmType(type)
     if (!skipEventDispatch && typeof window !== "undefined") {
@@ -47,48 +73,73 @@ export function Navbar() {
     }
 
     if (type === "silent" || type === "bowl") {
-      audioRef.current.pause()
       return
     }
 
     const bgmSources: Record<string, string> = {
-      piano: "/audio/piano-bgm.wav",
-      forest: "/audio/forest.mp3",
-      ocean: "/audio/ocean.wav",
-      river: "/audio/river.mp3",
-      rain: "/audio/rain.mp3",
+      guide: `${basePath}/audio/piano-bgm.wav`,
+      forest: `${basePath}/audio/forest.mp3`,
+      ocean: `${basePath}/audio/ocean.wav`,
+      river: `${basePath}/audio/river.mp3`,
+      rain: `${basePath}/audio/rain.mp3`,
     }
 
     const src = bgmSources[type]
     if (!src) return
-    
-    // Don't restart the audio if it's already playing the requested source
-    if (audioRef.current.src.endsWith(src) && !audioRef.current.paused) {
-      return
+    currentSrcRef.current = src
+
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
     }
 
-    audioRef.current.src = src
-    audioRef.current.volume = 0
-    
-    audioRef.current.play()
-      .then(() => {
-        let currentVolume = 0
-        const targetVolume = 0.8 // Gentle target volume
+    const ctx = audioCtxRef.current
+    if (ctx.state === "suspended") {
+      ctx.resume()
+    }
 
-        fadeIntervalRef.current = setInterval(() => {
-          if (currentVolume < targetVolume) {
-            currentVolume = Math.min(currentVolume + 0.05, targetVolume)
-            if (audioRef.current) {
-              audioRef.current.volume = currentVolume
-            }
-          } else {
-            if (fadeIntervalRef.current) {
-              clearInterval(fadeIntervalRef.current)
-            }
-          }
-        }, 150)
-      })
-      .catch((e) => console.error("Audio play failed:", e))
+    const playBuffer = (buffer: AudioBuffer, targetSrc: string) => {
+      if (currentSrcRef.current !== targetSrc) return
+
+      stopBgm()
+
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = ctx.createGain()
+        gainNodeRef.current.connect(ctx.destination)
+      }
+
+      const source = ctx.createBufferSource()
+      source.buffer = buffer
+      source.loop = true
+      source.connect(gainNodeRef.current)
+
+      const bgmVolumes: Record<string, number> = {
+        guide: 0.15,  // Very soft piano volume under voice guide
+        forest: 0.6,
+        ocean: 0.7,
+        river: 0.6,
+        rain: 0.6,
+      }
+      const targetVolume = bgmVolumes[type] || 0.8
+      gainNodeRef.current.gain.setValueAtTime(0, ctx.currentTime)
+      gainNodeRef.current.gain.linearRampToValueAtTime(targetVolume, ctx.currentTime + 1.5)
+
+      source.start(0)
+      sourceNodeRef.current = source
+      currentSrcRef.current = targetSrc
+    }
+
+    if (audioBufferCache.current[src]) {
+      playBuffer(audioBufferCache.current[src], src)
+    } else {
+      fetch(src)
+        .then((res) => res.arrayBuffer())
+        .then((arrayBuffer) => ctx.decodeAudioData(arrayBuffer))
+        .then((decodedBuffer) => {
+          audioBufferCache.current[src] = decodedBuffer
+          playBuffer(decodedBuffer, src)
+        })
+        .catch((e) => console.error("Web Audio playback failed:", e))
+    }
   }
 
   // Load BGM preference on mount
@@ -97,7 +148,7 @@ export function Navbar() {
     const stored = localStorage.getItem('zenith_bgm_type')
     if (stored) {
       setBgmType(stored)
-      if (["piano", "forest", "ocean", "river", "rain"].includes(stored)) {
+      if (["guide", "forest", "ocean", "river", "rain"].includes(stored)) {
         setTimeout(() => {
           selectBgm(stored)
         }, 1000)
@@ -129,14 +180,20 @@ export function Navbar() {
       const { isInSession, isPaused } = customEvent.detail
       
       const stored = localStorage.getItem('zenith_bgm_type')
-      const isPlayableLoop = stored && ["piano", "forest", "ocean", "river", "rain"].includes(stored)
-      if (isPlayableLoop && audioRef.current) {
-        if (isInSession && isPaused) {
-          audioRef.current.pause()
+      const isPlayableLoop = stored && ["guide", "forest", "ocean", "river", "rain"].includes(stored)
+      
+      if (isPlayableLoop) {
+        if (!isInSession) {
+          stopBgm()
+        } else if (isPaused) {
+          if (audioCtxRef.current && audioCtxRef.current.state === "running") {
+            audioCtxRef.current.suspend().catch((err) => console.error("Audio suspend failed:", err))
+          }
         } else {
-          // Play or resume if paused
-          if (audioRef.current.paused) {
-            audioRef.current.play().catch(err => console.error("Audio resume failed:", err))
+          if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
+            audioCtxRef.current.resume().catch((err) => console.error("Audio resume failed:", err))
+          } else if (!sourceNodeRef.current && stored) {
+            selectBgm(stored, true)
           }
         }
       }
@@ -144,6 +201,38 @@ export function Navbar() {
 
     window.addEventListener('zenith_session_state' as any, handleSessionStateChange)
     return () => window.removeEventListener('zenith_session_state' as any, handleSessionStateChange)
+  }, [])
+
+  // Scheduler for daily reminder notifications
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return
+
+    let lastNotifiedDate = ""
+
+    const checkReminder = () => {
+      const enabled = localStorage.getItem("zenith_daily_reminder_enabled") === "true"
+      if (!enabled) return
+
+      const targetTime = localStorage.getItem("zenith_daily_reminder_time") || "21:00"
+      const now = new Date()
+      const currentHourMin = now.toTimeString().slice(0, 5) // "HH:MM"
+      const currentDateString = now.toDateString()
+
+      if (currentHourMin === targetTime && lastNotifiedDate !== currentDateString) {
+        if (Notification.permission === "granted") {
+          new Notification("老何的正念冥想", {
+            body: "時間到了，來進行一段放鬆的正念冥想吧！",
+            icon: `${basePath}/icon.svg`
+          })
+          lastNotifiedDate = currentDateString
+        }
+      }
+    }
+
+    // Check immediately and then every 30 seconds
+    checkReminder()
+    const interval = setInterval(checkReminder, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const navItems = [

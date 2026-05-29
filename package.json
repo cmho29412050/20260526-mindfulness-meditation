@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "build:desktop": "next build && electron-packager . Zenith --platform=win32 --arch=x64 --out=dist --overwrite",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d out"
+    "deploy": "gh-pages -d out --nojekyll --dotfiles"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Play, Pause, RotateCcw } from "lucide-react"
+import { Play, Pause, RotateCcw, Square } from "lucide-react"
 
 interface SessionControlsProps {
   isInSession: boolean
@@ -9,6 +9,7 @@ interface SessionControlsProps {
   onStart: () => void
   onPause: () => void
   onReset: () => void
+  onEndSession: () => void
   isVisible: boolean
 }
 
@@ -18,6 +19,7 @@ export function SessionControls({
   onStart,
   onPause,
   onReset,
+  onEndSession,
   isVisible,
 }: SessionControlsProps) {
   return (
@@ -84,6 +86,20 @@ export function SessionControls({
             ) : (
               <Pause className="w-5 h-5 text-foreground" />
             )}
+          </motion.button>
+
+          {/* End/Stop button */}
+          <motion.button
+            onClick={onEndSession}
+            className="
+              p-4 rounded-full glass-card
+              hover:bg-red-500/10 hover:border-red-500/30 transition-colors cursor-pointer
+            "
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title="結束並結算"
+          >
+            <Square className="w-5 h-5 text-red-400 fill-red-400/20" />
           </motion.button>
 
           {/* Reset button */}

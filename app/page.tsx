@@ -11,7 +11,17 @@ import { SessionSetup } from "@/components/session-setup"
 import { SessionControls } from "@/components/session-controls"
 import { saveSession } from "@/lib/storage"
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ""
+
 type VibeMode = "focus" | "stress" | "sleep" | "home"
+
+const GUIDE_MESSAGES = [
+  "深吸一口氣，感受腹部的起伏。緩緩吐氣，放鬆全身。",
+  "如果發現大腦開始胡思亂想，沒有關係，溫柔地把注意力帶回呼吸。",
+  "保持自然的呼吸，專注於當下的這一刻，不作任何評判。",
+  "吸氣時知道自己在吸氣，呼氣時知道自己在呼氣。",
+  "感覺雙肩漸漸放鬆，面部肌肉完全舒展，享受此刻的寧靜。"
+]
 
 export default function MeditationApp() {
   const [vibeMode, setVibeMode] = useState<VibeMode>("focus")
@@ -58,11 +68,11 @@ export default function MeditationApp() {
     const playNext = () => {
       if (playCount >= count) return
       // 播放兩個重疊的音訊實體以增大音量
-      const audio1 = new Audio("/audio/bowl.mp3")
+      const audio1 = new Audio(`${basePath}/audio/bowl.mp3`)
       audio1.volume = 1.0
       audio1.play().catch(e => console.error("Bowl chime play failed:", e))
 
-      const audio2 = new Audio("/audio/bowl.mp3")
+      const audio2 = new Audio(`${basePath}/audio/bowl.mp3`)
       audio2.volume = 1.0
       audio2.play().catch(e => console.error("Bowl chime play failed:", e))
 
@@ -74,50 +84,94 @@ export default function MeditationApp() {
     playNext()
   }, [])
 
-  // Start of session chime trigger
-  useEffect(() => {
-    if (isInSession && bgmType === "bowl") {
-      playBowlChime(1)
-    }
-  }, [isInSession, bgmType, playBowlChime])
+  const speakGuidance = useCallback((text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = "zh-TW"
+    utterance.rate = 0.40 // 更加緩慢穩定的引導速度 (Slower rate for deeper relaxation)
+    utterance.pitch = 0.85 // 更溫柔、低沉平緩的語調 (Lower pitch for a gentler, softer tone)
+    utterance.volume = 0.75 // 稍微調低音量以顯溫柔 (Slightly softer volume)
+    window.speechSynthesis.speak(utterance)
+  }, [])
 
-  // Timer countdown and interval chime trigger
+  // Cancel guidance speech on pause/stop
+  useEffect(() => {
+    if ((isPaused || !isInSession) && typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel()
+    }
+  }, [isPaused, isInSession])
+
+  // Start of session chime/guidance trigger
+  useEffect(() => {
+    if (isInSession) {
+      if (bgmType === "bowl") {
+        playBowlChime(1)
+      } else if (bgmType === "guide") {
+        speakGuidance("歡迎來到正念冥想。請調整舒服的坐姿，輕輕閉上眼睛，將注意力帶回到呼吸上。")
+      }
+    }
+  }, [isInSession, bgmType, playBowlChime, speakGuidance])
+
+  // Timer countdown/count-up and interval chime trigger
   useEffect(() => {
     if (!isInSession || isPaused) return
 
+    const isInfinite = sessionDuration === 0
+
     const timer = setInterval(() => {
       setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          setIsInSession(false)
-          setShowPostMoodAssessment(true)
+        if (isInfinite) {
+          const nextTime = prev + 1
           
-          if (bgmType === "bowl") {
-            playBowlChime(3)
+          // Strike the bowl once every 30 seconds interval / Voice guidance every 60 seconds
+          if (nextTime > 0) {
+            if (nextTime % 30 === 0 && bgmType === "bowl") {
+              playBowlChime(1)
+            } else if (nextTime % 60 === 0 && bgmType === "guide") {
+              const msg = GUIDE_MESSAGES[Math.floor((nextTime / 60) % GUIDE_MESSAGES.length)]
+              speakGuidance(msg)
+            }
+          }
+          return nextTime
+        } else {
+          if (prev <= 1) {
+            setIsInSession(false)
+            setShowPostMoodAssessment(true)
+            
+            if (bgmType === "bowl") {
+              playBowlChime(3)
+            } else if (bgmType === "guide") {
+              speakGuidance("冥想已結束。請慢慢動動手指和腳趾，慢慢睜開雙眼。感謝您這段時間的專注。")
+            }
+
+            saveSession({
+              durationMinutes: Math.max(1, Math.round(sessionDuration / 60))
+            })
+            
+            return sessionDuration
           }
 
-          saveSession({
-            durationMinutes: Math.max(1, Math.round(sessionDuration / 60))
-          })
+          const nextTime = prev - 1
+          const elapsed = sessionDuration - nextTime
           
-          return sessionDuration
-        }
-
-        const nextTime = prev - 1
-        const elapsed = sessionDuration - nextTime
-        
-        // Strike the bowl once every 20 seconds interval
-        if (elapsed > 0 && elapsed % 20 === 0 && nextTime > 0) {
-          if (bgmType === "bowl") {
-            playBowlChime(1)
+          // Strike the bowl once every 30 seconds interval / Voice guidance every 60 seconds
+          if (elapsed > 0 && nextTime > 0) {
+            if (elapsed % 30 === 0 && bgmType === "bowl") {
+              playBowlChime(1)
+            } else if (elapsed % 60 === 0 && bgmType === "guide") {
+              const msg = GUIDE_MESSAGES[Math.floor((elapsed / 60) % GUIDE_MESSAGES.length)]
+              speakGuidance(msg)
+            }
           }
-        }
 
-        return nextTime
+          return nextTime
+        }
       })
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [isInSession, isPaused, sessionDuration, bgmType, playBowlChime])
+  }, [isInSession, isPaused, sessionDuration, bgmType, playBowlChime, speakGuidance])
 
   // Hide controls on inactivity during session
   useEffect(() => {
@@ -160,10 +214,20 @@ export default function MeditationApp() {
 
   const startMeditation = (duration: number) => {
     setSessionDuration(duration)
-    setTimeRemaining(duration)
+    setTimeRemaining(duration === 0 ? 0 : duration)
     setIsInSession(true)
     setIsPaused(false)
   }
+
+  const endSessionEarly = useCallback(() => {
+    setIsInSession(false)
+    setShowPostMoodAssessment(true)
+
+    const elapsedSeconds = sessionDuration === 0 ? timeRemaining : (sessionDuration - timeRemaining)
+    saveSession({
+      durationMinutes: Math.max(1, Math.round(elapsedSeconds / 60))
+    })
+  }, [sessionDuration, timeRemaining])
 
   return (
     <main 
@@ -176,12 +240,12 @@ export default function MeditationApp() {
         style={{
           backgroundImage: `url(${
             vibeMode === "focus"
-              ? "/images/mountain.png"
+              ? `${basePath}/images/mountain.png`
               : vibeMode === "stress"
-              ? "/images/beach.png"
+              ? `${basePath}/images/beach.png`
               : vibeMode === "sleep"
-              ? "/images/forest.png"
-              : "/images/home.png"
+              ? `${basePath}/images/forest.png`
+              : `${basePath}/images/home.png`
           })`,
           backgroundSize: "cover",
           backgroundPosition: "center",
@@ -197,7 +261,7 @@ export default function MeditationApp() {
         className="fixed inset-0 opacity-50"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 50%, rgba(176, 224, 230, 0.05) 0%, transparent 70%)",
+              "radial-gradient(ellipse at 50% 50%, rgba(176, 224, 230, 0.05) 0%, transparent 70%)",
         }}
         aria-hidden="true"
       />
@@ -284,7 +348,7 @@ export default function MeditationApp() {
               sessionDuration={sessionDuration}
               onDurationChange={(dur) => {
                 setSessionDuration(dur)
-                setTimeRemaining(dur)
+                setTimeRemaining(dur === 0 ? 0 : dur)
               }}
               bgmType={bgmType}
               onBgmChange={selectBgm}
@@ -306,9 +370,10 @@ export default function MeditationApp() {
                 onStart={() => setIsInSession(true)}
                 onPause={() => setIsPaused((p) => !p)}
                 onReset={() => {
-                  setTimeRemaining(sessionDuration)
+                  setTimeRemaining(sessionDuration === 0 ? 0 : sessionDuration)
                   setIsPaused(true)
                 }}
+                onEndSession={endSessionEarly}
                 isVisible={true}
               />
             </motion.div>

@@ -6,8 +6,48 @@ import { Trash2, Bell, Shield, CircleUserRound, ChevronRight } from "lucide-reac
 import { clearData } from "@/lib/storage"
 import { useRouter } from "next/navigation"
 
+import { useState, useEffect } from "react"
+
 export default function ProfilePage() {
   const router = useRouter()
+  const [reminderEnabled, setReminderEnabled] = useState(false)
+  const [reminderTime, setReminderTime] = useState("21:00")
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setReminderEnabled(localStorage.getItem("zenith_daily_reminder_enabled") === "true")
+      setReminderTime(localStorage.getItem("zenith_daily_reminder_time") || "21:00")
+    }
+  }, [])
+
+  const handleToggleReminder = async () => {
+    if (!reminderEnabled) {
+      if (!("Notification" in window)) {
+        alert("此裝置不支援系統通知。")
+        return
+      }
+      
+      const permission = await Notification.requestPermission()
+      if (permission === "granted") {
+        localStorage.setItem("zenith_daily_reminder_enabled", "true")
+        setReminderEnabled(true)
+        new Notification("老何的正念冥想", {
+          body: "每日提醒功能已開啟！將在您設定的時間提醒您。",
+          icon: "/icon.svg"
+        })
+      } else {
+        alert("需要開啟通知權限才能使用提醒功能。")
+      }
+    } else {
+      localStorage.setItem("zenith_daily_reminder_enabled", "false")
+      setReminderEnabled(false)
+    }
+  }
+
+  const handleTimeChange = (time: string) => {
+    setReminderTime(time)
+    localStorage.setItem("zenith_daily_reminder_time", time)
+  }
 
   const handleReset = () => {
     if (confirm("您確定要重設所有冥想統計數據嗎？此操作將永久清除所有歷史記錄且無法還原。")) {
@@ -68,8 +108,31 @@ export default function ProfilePage() {
               title="每日冥想提醒" 
               description="設定提醒時間，定時收到正念冥想提醒"
               action={
-                <div className="w-11 h-6 bg-white/[0.05] border border-white/[0.08] rounded-full relative cursor-not-allowed opacity-40">
-                  <div className="absolute left-1 top-1 w-4 h-4 bg-white/40 rounded-full" />
+                <div className="flex items-center gap-3">
+                  {reminderEnabled && (
+                    <input
+                      type="time"
+                      value={reminderTime}
+                      onChange={(e) => handleTimeChange(e.target.value)}
+                      className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-400 transition-colors cursor-pointer"
+                    />
+                  )}
+                  <button
+                    onClick={handleToggleReminder}
+                    className={`w-11 h-6 rounded-full relative transition-colors duration-300 border ${
+                      reminderEnabled 
+                        ? "bg-sky-500/35 border-sky-400/50" 
+                        : "bg-white/[0.05] border-white/[0.08]"
+                    }`}
+                  >
+                    <motion.div
+                      animate={{ x: reminderEnabled ? 20 : 0 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      className={`absolute left-0.5 top-0.5 w-4 h-4 rounded-full transition-colors ${
+                        reminderEnabled ? "bg-sky-300" : "bg-white/40"
+                      }`}
+                    />
+                  </button>
                 </div>
               }
             />

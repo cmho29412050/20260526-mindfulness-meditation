@@ -15,7 +15,7 @@ function createWindow (port) {
     autoHideMenuBar: true,
   })
 
-  mainWindow.loadURL(`http://localhost:${port}`)
+  mainWindow.loadURL(`http://localhost:${port}/20260526-mindfulness-meditation`)
 }
 
 app.whenReady().then(() => {
@@ -24,6 +24,7 @@ app.whenReady().then(() => {
   const outPath = path.join(__dirname, 'out')
   
   // Serve static files
+  serverApp.use('/20260526-mindfulness-meditation', express.static(outPath))
   serverApp.use(express.static(outPath))
   
   // Fallback to index.html for Next.js app router navigation
