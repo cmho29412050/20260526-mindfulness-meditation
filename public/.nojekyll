@@ -1,1 +1,1 @@
-# Prevent GitHub Pages from running Jekyll on this export
+# Prevent GitHub Pages from using Jekyll, which ignores folders starting with an underscore (like _next)
