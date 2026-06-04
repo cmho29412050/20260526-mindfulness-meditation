@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { CloudLightning, Wind, Coffee, CloudRain, Meh, Smile, Zap, X } from "lucide-react"
 
@@ -56,18 +56,47 @@ const POST_MOODS: Mood[] = [
   },
 ]
 
+const IMPROVEMENT_OPTIONS = [
+  { id: "sig_improved", label: "✨ 顯著改善", color: "hover:bg-emerald-500/20 hover:border-emerald-500/40 text-emerald-300" },
+  { id: "slight_improved", label: "👍 有些改善", color: "hover:bg-teal-500/20 hover:border-teal-500/40 text-teal-300" },
+  { id: "no_change", label: "😐 沒有差別", color: "hover:bg-slate-500/20 hover:border-slate-500/40 text-slate-300" },
+  { id: "worse", label: "👎 變得更糟", color: "hover:bg-rose-500/20 hover:border-rose-500/40 text-rose-300" },
+]
+
+const PRE_MOOD_MAP: Record<string, string> = {
+  anxious: "焦慮緊繃",
+  tired: "極度疲憊",
+  distracted: "思緒雜亂",
+  insomnia: "睡前助眠",
+  calm: "平靜日常",
+}
+
 interface PostMoodAssessmentProps {
   isOpen: boolean
   onClose: () => void
-  onComplete: () => void
+  onComplete: (moodId?: string, stateImprovement?: string, journalNote?: string) => void
+  moodBefore?: string | null
 }
 
-export function PostMoodAssessment({ isOpen, onClose, onComplete }: PostMoodAssessmentProps) {
+export function PostMoodAssessment({ isOpen, onClose, onComplete, moodBefore }: PostMoodAssessmentProps) {
+  const [step, setStep] = useState<"improvement" | "mood">("improvement")
+  const [improvement, setImprovement] = useState<string | null>(null)
   const [selectedMood, setSelectedMood] = useState<Mood | null>(null)
+  const [journalNote, setJournalNote] = useState("")
+
+  // Reset steps and choices when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setStep(moodBefore ? "improvement" : "mood")
+      setImprovement(null)
+      setSelectedMood(null)
+      setJournalNote("")
+    }
+  }, [isOpen, moodBefore])
 
   const handleFinish = () => {
+    onComplete(selectedMood?.id, improvement || undefined, journalNote.trim() || undefined)
     setSelectedMood(null)
-    onComplete()
   }
 
   return (
@@ -80,7 +109,6 @@ export function PostMoodAssessment({ isOpen, onClose, onComplete }: PostMoodAsse
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl"
           onClick={(e) => {
             e.stopPropagation()
-            // Don't close on background click to encourage filling it out
           }}
         >
           <motion.div
@@ -106,7 +134,40 @@ export function PostMoodAssessment({ isOpen, onClose, onComplete }: PostMoodAsse
 
             <div className="relative z-10">
               <AnimatePresence mode="wait">
-                {!selectedMood ? (
+                {step === "improvement" && moodBefore ? (
+                  <motion.div
+                    key="improvement-assessment"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="flex flex-col"
+                  >
+                    <h3 className="text-xl font-light text-white text-center mb-2 tracking-wide">
+                      身心狀態評估
+                    </h3>
+                    <p className="text-sm font-light text-white/70 text-center mb-6 leading-relaxed">
+                      您在開始前感到「<span className="text-sky-300 font-normal">{PRE_MOOD_MAP[moodBefore] || "..."}</span>」。<br />
+                      經過這段正念冥想，您覺得身心狀態有改善嗎？
+                    </p>
+
+                    <div className="flex flex-col gap-3">
+                      {IMPROVEMENT_OPTIONS.map((opt) => (
+                        <motion.button
+                          key={opt.id}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {
+                            setImprovement(opt.id)
+                            setStep("mood")
+                          }}
+                          className={`w-full py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white/80 transition-all font-light text-sm tracking-widest cursor-pointer text-center ${opt.color}`}
+                        >
+                          {opt.label}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </motion.div>
+                ) : !selectedMood ? (
                   <motion.div
                     key="mood-selection"
                     initial={{ opacity: 0, x: -20 }}
@@ -126,7 +187,8 @@ export function PostMoodAssessment({ isOpen, onClose, onComplete }: PostMoodAsse
                           whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setSelectedMood(mood)}
-                          className="flex flex-col items-center justify-center p-4 gap-3 bg-white/5 border border-white/10 rounded-2xl text-white/80 hover:text-white transition-all"
+                          style={{ backgroundColor: "rgba(255, 255, 255, 0.05)" }}
+                          className="flex flex-col items-center justify-center p-4 gap-3 border border-white/10 rounded-2xl text-white/80 hover:text-white transition-all cursor-pointer"
                         >
                           <mood.icon className="w-6 h-6" strokeWidth={1.5} />
                           <span className="text-xs tracking-wider uppercase font-light text-center">
@@ -135,6 +197,18 @@ export function PostMoodAssessment({ isOpen, onClose, onComplete }: PostMoodAsse
                         </motion.button>
                       ))}
                     </div>
+
+                    {moodBefore && (
+                      <motion.button
+                        whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.05)" }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setStep("improvement")}
+                        style={{ backgroundColor: "rgba(255, 255, 255, 0)" }}
+                        className="w-full mt-5 py-2.5 rounded-xl border border-white/10 text-white/50 hover:text-white transition-colors font-light text-xs tracking-wider cursor-pointer"
+                      >
+                        返回上一步 (身心評估)
+                      </motion.button>
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div
@@ -144,24 +218,43 @@ export function PostMoodAssessment({ isOpen, onClose, onComplete }: PostMoodAsse
                     exit={{ opacity: 0, x: 20 }}
                     className="text-center"
                   >
-                    <div className="flex justify-center mb-6">
-                      <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                        <selectedMood.icon className="w-8 h-8 text-white" strokeWidth={1.5} />
+                    <div className="flex justify-center mb-4">
+                      <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                        <selectedMood.icon className="w-6 h-6 text-white" strokeWidth={1.5} />
                       </div>
                     </div>
-                    <h3 className="text-xl font-light text-white mb-2">
+                    <h3 className="text-lg font-light text-white mb-1">
                       現在感到：{selectedMood.label}
                     </h3>
-                    <p className="text-white/60 font-light mb-8 leading-relaxed">
+                    <p className="text-white/60 text-xs font-light mb-4 leading-relaxed px-2">
                       {selectedMood.message}
                     </p>
+
+                    {/* Mindfulness Journaling Textarea */}
+                    <div className="flex flex-col text-left gap-1 mb-4 w-full">
+                      <span className="text-[10px] sm:text-xs uppercase tracking-wider text-white/40 font-light">
+                        寫下當下隨筆（選填）
+                      </span>
+                      <textarea
+                        value={journalNote}
+                        onChange={(e) => setJournalNote(e.target.value)}
+                        placeholder="寫下您此刻的思緒、感受，或是今天練習的心得..."
+                        rows={3}
+                        maxLength={150}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white/80 font-light focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-white/20 resize-none"
+                      />
+                      <span className="text-[9px] text-right text-white/30 font-light">
+                        {journalNote.length} / 150
+                      </span>
+                    </div>
                     
                     <div className="flex gap-3">
                       <motion.button
-                        whileHover={{ scale: 1.02 }}
+                        whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.05)" }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setSelectedMood(null)}
-                        className="flex-1 py-3 px-4 rounded-xl border border-white/20 text-white/80 hover:bg-white/5 transition-colors font-light text-sm tracking-wide uppercase"
+                        style={{ backgroundColor: "rgba(255, 255, 255, 0)" }}
+                        className="flex-1 py-3 px-4 rounded-xl border border-white/20 text-white/80 transition-colors font-light text-sm tracking-wide uppercase cursor-pointer"
                       >
                         返回
                       </motion.button>
@@ -169,7 +262,7 @@ export function PostMoodAssessment({ isOpen, onClose, onComplete }: PostMoodAsse
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleFinish}
-                        className="flex-[2] py-3 px-4 rounded-xl bg-white/20 hover:bg-white/30 border border-emerald-500/30 text-white transition-colors font-medium text-sm tracking-wide uppercase shadow-[0_0_10px_rgba(16,185,129,0.1)] hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                        className="flex-[2] py-3 px-4 rounded-xl bg-white/20 hover:bg-white/30 border border-emerald-500/30 text-white transition-colors font-medium text-sm tracking-wide uppercase shadow-[0_0_10px_rgba(16,185,129,0.1)] hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] cursor-pointer"
                       >
                         完成並查看科學洞察
                       </motion.button>

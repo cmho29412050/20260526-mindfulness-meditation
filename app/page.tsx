@@ -9,11 +9,13 @@ import { DmnInsightDialog } from "@/components/dmn-insight-dialog"
 import { PostMoodAssessment } from "@/components/post-mood-assessment"
 import { SessionSetup } from "@/components/session-setup"
 import { SessionControls } from "@/components/session-controls"
-import { saveSession } from "@/lib/storage"
+import { PreMoodAssessment } from "@/components/pre-mood-assessment"
+import { BreathingSphere } from "@/components/breathing-sphere"
+import { saveSession, updateLastSessionMoodAfter } from "@/lib/storage"
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ""
 
-type VibeMode = "focus" | "stress" | "sleep" | "home"
+type VibeMode = "focus" | "stress" | "sleep" | "home" | "rain"
 
 const GUIDE_MESSAGES = [
   "深吸一口氣，感受腹部的起伏。緩緩吐氣，放鬆全身。",
@@ -22,6 +24,69 @@ const GUIDE_MESSAGES = [
   "吸氣時知道自己在吸氣，呼氣時知道自己在呼氣。",
   "感覺雙肩漸漸放鬆，面部肌肉完全舒展，享受此刻的寧靜。"
 ]
+
+const getBreathingPhase = (elapsedSeconds: number, rhythm: string): {
+  phase: "inhale" | "hold" | "exhale" | "hold_out" | "idle"
+  duration: number
+} => {
+  if (rhythm === "natural") {
+    // Total cycle is 5s inhale + 5s exhale = 10s
+    const cycleTime = elapsedSeconds % 10
+    if (cycleTime < 5) {
+      return { phase: "inhale", duration: 5 }
+    } else {
+      return { phase: "exhale", duration: 5 }
+    }
+  } else if (rhythm === "4-7-8") {
+    const cycleTime = elapsedSeconds % 19
+    if (cycleTime < 4) {
+      return { phase: "inhale", duration: 4 }
+    } else if (cycleTime < 11) {
+      return { phase: "hold", duration: 7 }
+    } else {
+      return { phase: "exhale", duration: 8 }
+    }
+  } else if (rhythm === "4-4-4-4") {
+    const cycleTime = elapsedSeconds % 16
+    if (cycleTime < 4) {
+      return { phase: "inhale", duration: 4 }
+    } else if (cycleTime < 8) {
+      return { phase: "hold", duration: 4 }
+    } else if (cycleTime < 12) {
+      return { phase: "exhale", duration: 4 }
+    } else {
+      return { phase: "hold_out", duration: 4 }
+    }
+  } else {
+    const cycleTime = elapsedSeconds % 16
+    if (cycleTime < 4) {
+      return { phase: "inhale", duration: 4 }
+    } else if (cycleTime < 8) {
+      return { phase: "hold", duration: 4 }
+    } else {
+      return { phase: "exhale", duration: 8 }
+    }
+  }
+}
+
+const getPhaseInstruction = (phase: string, rhythm: string) => {
+  if (rhythm === "natural") {
+    if (phase === "inhale") return "順應自然，緩緩吸氣"
+    if (phase === "exhale") return "順應自然，緩緩吐氣"
+  }
+  switch (phase) {
+    case "inhale":
+      return "緩緩吸氣，感受身體的充盈"
+    case "hold":
+      return "屏息凝神，感受當下的平靜"
+    case "exhale":
+      return "緩緩吐氣，釋放所有壓力"
+    case "hold_out":
+      return "屏息靜心，體驗空無的寧靜"
+    default:
+      return "放鬆身心，準備開始"
+  }
+}
 
 export default function MeditationApp() {
   const [vibeMode, setVibeMode] = useState<VibeMode>("focus")
@@ -33,6 +98,30 @@ export default function MeditationApp() {
   const [showPostMoodAssessment, setShowPostMoodAssessment] = useState(false)
   const [controlsVisible, setControlsVisible] = useState(true)
   const [bgmType, setBgmType] = useState<string>("silent")
+  const [showPreMoodAssessment, setShowPreMoodAssessment] = useState(false)
+  const [moodBefore, setMoodBefore] = useState<string | null>(null)
+  const [breathingRhythm, setBreathingRhythm] = useState<string>("4-4-8")
+
+  // Load breathing rhythm preference on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setBreathingRhythm(localStorage.getItem("zenith_breathing_rhythm") || "4-4-8")
+    }
+  }, [])
+
+  const selectRhythm = (rhythm: string) => {
+    setBreathingRhythm(rhythm)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("zenith_breathing_rhythm", rhythm)
+    }
+  }
+
+  const elapsedSeconds = sessionDuration === 0 ? timeRemaining : (sessionDuration - timeRemaining)
+  const { phase: currentPhase, duration: phaseDuration } = (!isInSession || isPaused)
+    ? { phase: "idle" as const, duration: 2 }
+    : getBreathingPhase(elapsedSeconds, breathingRhythm)
+
+  const instructionText = getPhaseInstruction(currentPhase, breathingRhythm)
 
   // Sync BGM preference
   useEffect(() => {
@@ -62,7 +151,7 @@ export default function MeditationApp() {
     window.dispatchEvent(event)
   }, [isInSession, isPaused])
 
-  // Play singing bowl chime helper (louder volume using dual instances)
+  // Play singing bowl chime helper (louder volume using dual instances + pitch lowered for depth)
   const playBowlChime = useCallback((count: number = 1) => {
     let playCount = 0
     const playNext = () => {
@@ -70,10 +159,26 @@ export default function MeditationApp() {
       // 播放兩個重疊的音訊實體以增大音量
       const audio1 = new Audio(`${basePath}/audio/bowl.mp3`)
       audio1.volume = 1.0
+      if ('preservesPitch' in audio1) {
+        audio1.preservesPitch = false
+      } else if ('mozPreservesPitch' in audio1) {
+        (audio1 as any).mozPreservesPitch = false
+      } else if ('webkitPreservesPitch' in audio1) {
+        (audio1 as any).webkitPreservesPitch = false
+      }
+      audio1.playbackRate = 0.74 // 降低播放速率以使音頻更低沉、更有共鳴
       audio1.play().catch(e => console.error("Bowl chime play failed:", e))
 
       const audio2 = new Audio(`${basePath}/audio/bowl.mp3`)
       audio2.volume = 1.0
+      if ('preservesPitch' in audio2) {
+        audio2.preservesPitch = false
+      } else if ('mozPreservesPitch' in audio2) {
+        (audio2 as any).mozPreservesPitch = false
+      } else if ('webkitPreservesPitch' in audio2) {
+        (audio2 as any).webkitPreservesPitch = false
+      }
+      audio2.playbackRate = 0.74
       audio2.play().catch(e => console.error("Bowl chime play failed:", e))
 
       playCount++
@@ -146,7 +251,9 @@ export default function MeditationApp() {
             }
 
             saveSession({
-              durationMinutes: Math.max(1, Math.round(sessionDuration / 60))
+              durationMinutes: Math.max(1, Math.round(sessionDuration / 60)),
+              vibeMode: vibeMode,
+              moodBefore: moodBefore || undefined
             })
             
             return sessionDuration
@@ -171,7 +278,7 @@ export default function MeditationApp() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [isInSession, isPaused, sessionDuration, bgmType, playBowlChime, speakGuidance])
+  }, [isInSession, isPaused, sessionDuration, bgmType, playBowlChime, speakGuidance, moodBefore])
 
   // Hide controls on inactivity during session
   useEffect(() => {
@@ -219,15 +326,31 @@ export default function MeditationApp() {
     setIsPaused(false)
   }
 
+  const applyRecommendation = (duration: number, vibe: VibeMode, moodBeforeId: string, autoStart: boolean) => {
+    setSessionDuration(duration)
+    setTimeRemaining(duration === 0 ? 0 : duration)
+    setVibeMode(vibe)
+    setMoodBefore(moodBeforeId)
+    setShowPreMoodAssessment(false)
+    selectBgm("piano")
+
+    if (autoStart) {
+      setIsInSession(true)
+      setIsPaused(false)
+    }
+  }
+
   const endSessionEarly = useCallback(() => {
     setIsInSession(false)
     setShowPostMoodAssessment(true)
 
     const elapsedSeconds = sessionDuration === 0 ? timeRemaining : (sessionDuration - timeRemaining)
     saveSession({
-      durationMinutes: Math.max(1, Math.round(elapsedSeconds / 60))
+      durationMinutes: Math.max(1, Math.round(elapsedSeconds / 60)),
+      vibeMode: vibeMode,
+      moodBefore: moodBefore || undefined
     })
-  }, [sessionDuration, timeRemaining])
+  }, [sessionDuration, timeRemaining, vibeMode, moodBefore])
 
   return (
     <main 
@@ -245,6 +368,8 @@ export default function MeditationApp() {
               ? `${basePath}/images/beach.png`
               : vibeMode === "sleep"
               ? `${basePath}/images/forest.png`
+              : vibeMode === "rain"
+              ? `${basePath}/images/rain.png`
               : `${basePath}/images/home.png`
           })`,
           backgroundSize: "cover",
@@ -267,7 +392,7 @@ export default function MeditationApp() {
       />
 
       {/* Particle background */}
-      <ParticleBackground isInSession={isInSession} />
+      <ParticleBackground isInSession={isInSession} vibeMode={vibeMode} />
 
       {/* Main content */}
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-between pt-16 pb-28 px-4">
@@ -288,22 +413,18 @@ export default function MeditationApp() {
 
         {/* Active Session Content */}
         {isInSession && (
-          <div className="flex flex-col items-center justify-center my-auto gap-8 pointer-events-none select-none">
-            {/* Breathing Guide gently pulsing */}
+          <div className="flex flex-col items-center justify-center my-auto gap-12 pointer-events-none select-none">
+            {/* Breathing Guide text */}
             <motion.div
-              animate={{
-                opacity: isPaused ? 0.3 : [0.4, 0.8, 0.4],
-                scale: isPaused ? 0.98 : [0.98, 1.02, 0.98],
-              }}
-              transition={{
-                duration: 6,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              key={instructionText}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: isPaused ? 0.4 : 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.8 }}
               className="text-center"
             >
               <h2 
-                className="text-2xl md:text-3xl font-light tracking-[0.15em] text-slate-100 text-center px-4"
+                className="text-xl md:text-2xl font-light tracking-[0.15em] text-slate-100 text-center px-4 transition-all duration-300"
                 style={{
                   textShadow: vibeMode === "focus" 
                     ? "0 0 30px rgba(125,211,252,0.25)" 
@@ -312,9 +433,19 @@ export default function MeditationApp() {
                     : "0 0 30px rgba(165,180,252,0.25)"
                 }}
               >
-                正常呼吸，專注數息
+                {instructionText}
               </h2>
             </motion.div>
+
+            {/* Central Breathing Sphere */}
+            <div className="my-4">
+              <BreathingSphere
+                phase={currentPhase}
+                vibeMode={vibeMode}
+                isInSession={isInSession}
+                duration={phaseDuration}
+              />
+            </div>
 
             {/* Central Timer */}
             <MindfulTimer
@@ -353,6 +484,9 @@ export default function MeditationApp() {
               bgmType={bgmType}
               onBgmChange={selectBgm}
               onStartSession={() => startMeditation(sessionDuration)}
+              onOpenAssessment={() => setShowPreMoodAssessment(true)}
+              selectedRhythm={breathingRhythm}
+              onRhythmChange={selectRhythm}
             />
           ) : (
             <motion.div
@@ -386,11 +520,22 @@ export default function MeditationApp() {
         onClose={() => {
           setShowPostMoodAssessment(false)
           setShowDmnInsight(true)
+          setMoodBefore(null)
         }}
-        onComplete={() => {
+        onComplete={(moodId, stateImprovement, journalNote) => {
           setShowPostMoodAssessment(false)
           setShowDmnInsight(true)
+          if (moodId) {
+            updateLastSessionMoodAfter(moodId, stateImprovement, journalNote)
+          }
+          setMoodBefore(null)
         }}
+        moodBefore={moodBefore}
+      />
+      <PreMoodAssessment
+        isOpen={showPreMoodAssessment}
+        onClose={() => setShowPreMoodAssessment(false)}
+        onApply={applyRecommendation}
       />
       <DmnInsightDialog open={showDmnInsight} onOpenChange={setShowDmnInsight} />
     </main>

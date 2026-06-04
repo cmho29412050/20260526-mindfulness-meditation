@@ -3,19 +3,13 @@
 import { motion } from "framer-motion"
 import { useMemo } from "react"
 
-type VibeMode = "focus" | "stress" | "sleep"
+type VibeMode = "focus" | "stress" | "sleep" | "home" | "rain"
 
 interface BreathingSphereProps {
-  phase: "inhale" | "hold" | "exhale" | "idle"
+  phase: "inhale" | "hold" | "exhale" | "hold_out" | "idle"
   vibeMode: VibeMode
   isInSession: boolean
-}
-
-const phaseConfig = {
-  inhale: { scale: 1.4, duration: 4 },
-  hold: { scale: 1.4, duration: 4 },
-  exhale: { scale: 1, duration: 8 },
-  idle: { scale: 1.1, duration: 2 },
+  duration: number
 }
 
 const vibeColors = {
@@ -34,24 +28,64 @@ const vibeColors = {
     secondary: "rgba(165, 180, 252, 0.15)",
     glow: "199, 210, 254",
   },
+  home: {
+    primary: "rgba(251, 113, 133, 0.35)",      // Rose Pink
+    secondary: "rgba(254, 205, 211, 0.15)",
+    glow: "251, 113, 133",
+  },
+  rain: {
+    primary: "rgba(56, 189, 248, 0.35)",       // Sky Blue
+    secondary: "rgba(186, 230, 253, 0.15)",
+    glow: "56, 189, 248",
+  },
 }
 
-export function BreathingSphere({ phase, vibeMode, isInSession }: BreathingSphereProps) {
-  const config = phaseConfig[phase]
-  const colors = vibeColors[vibeMode]
+export function BreathingSphere({ phase, vibeMode, isInSession, duration }: BreathingSphereProps) {
+  const colors = vibeColors[vibeMode] || vibeColors.focus
 
-  const sphereVariants = useMemo(
-    () => ({
-      animate: {
-        scale: config.scale,
-        transition: {
-          duration: config.duration,
-          ease: (phase === "hold" ? "linear" : "easeInOut") as "linear" | "easeInOut",
+  const targetScale = useMemo(() => {
+    switch (phase) {
+      case "inhale":
+        return 1.4
+      case "hold":
+        return 1.4
+      case "exhale":
+        return 1.0
+      case "hold_out":
+        return 1.0
+      case "idle":
+        return 1.1
+      default:
+        return 1.1
+    }
+  }, [phase])
+
+  const scaleValue = useMemo(() => {
+    if (phase === "hold") return [1.38, 1.42, 1.38]
+    if (phase === "hold_out") return [0.98, 1.02, 0.98]
+    return targetScale
+  }, [phase, targetScale])
+
+  const transitionValue = useMemo(() => {
+    const isHold = phase === "hold" || phase === "hold_out"
+    if (isHold) {
+      return {
+        scale: {
+          duration: 3,
+          repeat: Infinity,
+          ease: "easeInOut",
         },
-      },
-    }),
-    [config.scale, config.duration, phase]
-  )
+        boxShadow: {
+          duration: 1.5,
+          ease: "easeInOut",
+        }
+      }
+    }
+    return {
+      duration: duration,
+      ease: "easeInOut",
+    }
+  }, [phase, duration])
 
   return (
     <div className="relative flex items-center justify-center">
@@ -87,8 +121,13 @@ export function BreathingSphere({ phase, vibeMode, isInSession }: BreathingSpher
       {/* Main breathing sphere */}
       <motion.div
         className="relative w-48 h-48 md:w-64 md:h-64 rounded-full"
-        variants={sphereVariants}
-        animate="animate"
+        animate={{
+          scale: scaleValue,
+          boxShadow: phase === "inhale" || phase === "hold"
+            ? `0 0 75px rgba(${colors.glow}, 0.55), 0 0 150px rgba(${colors.glow}, 0.3), inset 0 0 65px rgba(255, 255, 255, 0.12)`
+            : `0 0 35px rgba(${colors.glow}, 0.35), 0 0 70px rgba(${colors.glow}, 0.15), inset 0 0 45px rgba(255, 255, 255, 0.08)`
+        }}
+        transition={transitionValue}
         style={{
           background: `
             radial-gradient(circle at 30% 30%, 
@@ -96,11 +135,6 @@ export function BreathingSphere({ phase, vibeMode, isInSession }: BreathingSpher
               ${colors.primary} 40%, 
               ${colors.secondary} 70%, 
               transparent 100%)
-          `,
-          boxShadow: `
-            0 0 60px rgba(${colors.glow}, 0.4),
-            0 0 120px rgba(${colors.glow}, 0.2),
-            inset 0 0 60px rgba(255, 255, 255, 0.1)
           `,
           backdropFilter: "blur(20px)",
         }}
@@ -141,11 +175,15 @@ export function BreathingSphere({ phase, vibeMode, isInSession }: BreathingSpher
         <motion.p
           key={phase}
           initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 0.8, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="text-lg font-light tracking-[0.3em] uppercase text-foreground/60"
+          className="text-base sm:text-lg font-light tracking-[0.25em] text-white"
         >
-          {phase === "idle" ? "ready" : phase}
+          {phase === "inhale" && "吸氣 · Inhale"}
+          {phase === "hold" && "屏息 · Hold"}
+          {phase === "exhale" && "呼氣 · Exhale"}
+          {phase === "hold_out" && "屏息 · Hold"}
+          {phase === "idle" && "預備 · Ready"}
         </motion.p>
       </motion.div>
     </div>

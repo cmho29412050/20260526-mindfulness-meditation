@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="ensoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.95"/>
+      <stop offset="50%" stop-color="#818cf8" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#f43f5e" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+  <!-- Beautiful abstract Enso circle stroke -->
+  <path d="M256,60 C364,60 452,148 452,256 C452,364 364,452 256,452 C160,452 79,383 63,290 C60,270 75,252 95,250 C115,248 133,263 135,283 C147,348 204,396 256,396 C333,396 396,333 396,256 C396,179 333,116 256,116 C201,116 153,148 131,196 C123,214 102,222 84,214 C66,206 58,185 66,167 C97,101 166,60 256,60 Z" fill="url(#ensoGrad)" />
+  <!-- Center soft glowing sphere -->
+  <circle cx="256" cy="256" r="50" fill="#ffffff" opacity="0.3" />
+</svg>

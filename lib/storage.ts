@@ -5,6 +5,8 @@ export interface MeditationSession {
   moodBefore?: string
   moodAfter?: string
   vibeMode?: string
+  journalNote?: string
+  stateImprovement?: string
 }
 
 export interface UserStats {
@@ -113,4 +115,27 @@ export const clearData = () => {
   if (typeof window === 'undefined') return
   localStorage.removeItem(STORAGE_KEYS.SESSIONS)
   localStorage.removeItem(STORAGE_KEYS.STATS)
+}
+
+export const updateLastSessionMoodAfter = (
+  moodAfter: string,
+  stateImprovement?: string,
+  journalNote?: string
+) => {
+  if (typeof window === 'undefined') return
+  try {
+    const sessions = getSessions()
+    if (sessions.length > 0) {
+      sessions[0].moodAfter = moodAfter
+      if (stateImprovement) {
+        sessions[0].stateImprovement = stateImprovement
+      }
+      if (journalNote) {
+        sessions[0].journalNote = journalNote
+      }
+      localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions))
+    }
+  } catch (e) {
+    console.error("Error updating last session mood after", e)
+  }
 }

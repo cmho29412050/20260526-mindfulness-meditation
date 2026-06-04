@@ -18,6 +18,7 @@ export function Navbar() {
   const currentSrcRef = useRef<string | null>(null)
   const audioBufferCache = useRef<Record<string, AudioBuffer>>({})
   const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const customObjectURLRef = useRef<string | null>(null)
 
   const stopBgm = () => {
     if (fadeIntervalRef.current) {
@@ -51,6 +52,10 @@ export function Navbar() {
 
     sourceNodeRef.current = null
     currentSrcRef.current = null
+    if (customObjectURLRef.current) {
+      URL.revokeObjectURL(customObjectURLRef.current)
+      customObjectURLRef.current = null
+    }
   }
 
   useEffect(() => {
@@ -63,29 +68,7 @@ export function Navbar() {
     }
   }, [])
 
-  const selectBgm = (type: string, skipEventDispatch = false) => {
-    stopBgm()
-
-    setBgmType(type)
-    if (!skipEventDispatch && typeof window !== "undefined") {
-      localStorage.setItem('zenith_bgm_type', type)
-      window.dispatchEvent(new Event('zenith_bgm_change'))
-    }
-
-    if (type === "silent" || type === "bowl") {
-      return
-    }
-
-    const bgmSources: Record<string, string> = {
-      guide: `${basePath}/audio/piano-bgm.wav`,
-      forest: `${basePath}/audio/forest.mp3`,
-      ocean: `${basePath}/audio/ocean.wav`,
-      river: `${basePath}/audio/river.mp3`,
-      rain: `${basePath}/audio/rain.mp3`,
-    }
-
-    const src = bgmSources[type]
-    if (!src) return
+  const startBgmPlay = (src: string, bgmType: string) => {
     currentSrcRef.current = src
 
     if (!audioCtxRef.current) {
@@ -114,12 +97,17 @@ export function Navbar() {
 
       const bgmVolumes: Record<string, number> = {
         guide: 0.15,  // Very soft piano volume under voice guide
+        piano: 0.6,   // Standard piano background music volume
         forest: 0.6,
         ocean: 0.7,
         river: 0.6,
         rain: 0.6,
+        custom: 0.6,
       }
-      const targetVolume = bgmVolumes[type] || 0.8
+      const storedVol = typeof window !== "undefined"
+        ? parseFloat(localStorage.getItem("zenith_bgm_volume") || "60") / 100
+        : 0.6
+      const targetVolume = (bgmVolumes[bgmType] || 0.8) * storedVol
       gainNodeRef.current.gain.setValueAtTime(0, ctx.currentTime)
       gainNodeRef.current.gain.linearRampToValueAtTime(targetVolume, ctx.currentTime + 1.5)
 
@@ -142,19 +130,97 @@ export function Navbar() {
     }
   }
 
+  const selectBgm = (type: string, skipEventDispatch = false) => {
+    stopBgm()
+
+    setBgmType(type)
+    if (!skipEventDispatch && typeof window !== "undefined") {
+      localStorage.setItem('zenith_bgm_type', type)
+      window.dispatchEvent(new Event('zenith_bgm_change'))
+    }
+
+    if (type === "silent" || type === "bowl") {
+      return
+    }
+
+    if (type === "custom") {
+      import("@/lib/db").then(({ getCustomAudio }) => {
+        getCustomAudio().then((customAudio) => {
+          if (!customAudio) {
+            console.error("No custom audio found in IndexedDB")
+            return
+          }
+          if (customObjectURLRef.current) {
+            URL.revokeObjectURL(customObjectURLRef.current)
+          }
+          const customUrl = URL.createObjectURL(customAudio.blob)
+          customObjectURLRef.current = customUrl
+          startBgmPlay(customUrl, "custom")
+        }).catch((err) => console.error("Error reading custom audio from IndexedDB:", err))
+      })
+      return
+    }
+
+    const bgmSources: Record<string, string> = {
+      guide: `${basePath}/audio/piano-bgm.wav`,
+      piano: `${basePath}/audio/piano-bgm.wav`,
+      forest: `${basePath}/audio/forest.mp3`,
+      ocean: `${basePath}/audio/ocean.wav`,
+      river: `${basePath}/audio/river.mp3`,
+      rain: `${basePath}/audio/rain.mp3`,
+    }
+
+    const src = bgmSources[type]
+    if (!src) return
+    startBgmPlay(src, type)
+  }
+
   // Load BGM preference on mount
   useEffect(() => {
     if (typeof window === "undefined") return
     const stored = localStorage.getItem('zenith_bgm_type')
     if (stored) {
       setBgmType(stored)
-      if (["guide", "forest", "ocean", "river", "rain"].includes(stored)) {
+      if (["guide", "piano", "forest", "ocean", "river", "rain", "custom"].includes(stored)) {
         setTimeout(() => {
           selectBgm(stored)
         }, 1000)
       }
     }
   }, [])
+
+  // Listen to BGM volume change events and ramp volume smoothly
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const handleVolumeChange = () => {
+      const storedVol = parseFloat(localStorage.getItem("zenith_bgm_volume") || "60") / 100
+      const activeType = localStorage.getItem("zenith_bgm_type") || "silent"
+      if (activeType === "silent" || activeType === "bowl") return
+
+      if (gainNodeRef.current && audioCtxRef.current) {
+        const ctx = audioCtxRef.current
+        const bgmVolumes: Record<string, number> = {
+          guide: 0.15,
+          piano: 0.6,
+          forest: 0.6,
+          ocean: 0.7,
+          river: 0.6,
+          rain: 0.6,
+          custom: 0.6,
+        }
+        const baseVol = bgmVolumes[activeType] || 0.8
+        const newVolume = baseVol * storedVol
+
+        gainNodeRef.current.gain.cancelScheduledValues(ctx.currentTime)
+        gainNodeRef.current.gain.setValueAtTime(gainNodeRef.current.gain.value, ctx.currentTime)
+        gainNodeRef.current.gain.linearRampToValueAtTime(newVolume, ctx.currentTime + 0.3)
+      }
+    }
+
+    window.addEventListener("zenith_bgm_volume_change", handleVolumeChange)
+    return () => window.removeEventListener("zenith_bgm_volume_change", handleVolumeChange)
+  }, [bgmType])
 
   // Listen for background music changes from other components
   useEffect(() => {
@@ -180,7 +246,7 @@ export function Navbar() {
       const { isInSession, isPaused } = customEvent.detail
       
       const stored = localStorage.getItem('zenith_bgm_type')
-      const isPlayableLoop = stored && ["guide", "forest", "ocean", "river", "rain"].includes(stored)
+      const isPlayableLoop = stored && ["guide", "piano", "forest", "ocean", "river", "rain", "custom"].includes(stored)
       
       if (isPlayableLoop) {
         if (!isInSession) {

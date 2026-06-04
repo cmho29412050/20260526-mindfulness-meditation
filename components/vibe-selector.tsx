@@ -1,9 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Mountain, Waves, Trees, Home } from "lucide-react"
+import { Mountain, Waves, Trees, Home, CloudRain } from "lucide-react"
 
-type VibeMode = "focus" | "stress" | "sleep" | "home"
+type VibeMode = "focus" | "stress" | "sleep" | "home" | "rain"
 
 interface VibeSelectorProps {
   selectedVibe: VibeMode
@@ -48,6 +48,15 @@ const vibes = [
     activeColor: "from-rose-400/40 to-orange-400/40",
     glowColor: "rgba(244, 63, 94, 0.5)",
   },
+  {
+    id: "rain" as VibeMode,
+    label: "雨天",
+    icon: CloudRain,
+    description: "雨天靜心",
+    color: "from-sky-400/20 to-blue-500/20",
+    activeColor: "from-sky-400/40 to-blue-500/40",
+    glowColor: "rgba(14, 165, 233, 0.5)",
+  },
 ]
 
 export function VibeSelector({ selectedVibe, onVibeChange, isVisible }: VibeSelectorProps) {
@@ -61,7 +70,7 @@ export function VibeSelector({ selectedVibe, onVibeChange, isVisible }: VibeSele
       <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-medium mb-2">
         選擇冥想地點
       </p>
-      <div className="grid grid-cols-4 gap-2.5 w-full">
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-2.5 w-full">
         {vibes.map((vibe) => {
           const Icon = vibe.icon
           const isSelected = selectedVibe === vibe.id
@@ -71,22 +80,23 @@ export function VibeSelector({ selectedVibe, onVibeChange, isVisible }: VibeSele
               key={vibe.id}
               onClick={() => onVibeChange(vibe.id)}
               className={`
-                relative flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all duration-300 cursor-pointer group
+                relative flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all duration-300 cursor-pointer group overflow-hidden select-none
                 ${isSelected 
-                  ? "bg-slate-900/[0.04] border-slate-300 text-slate-900 shadow-[0_0_20px_rgba(15,23,42,0.05)]" 
-                  : "bg-slate-50/40 border-slate-200/60 text-slate-500 hover:text-slate-800 hover:bg-slate-100/50"
+                  ? "border-slate-300 text-slate-900 shadow-[0_0_20px_rgba(15,23,42,0.04)]" 
+                  : "bg-slate-50/20 border-slate-200/50 text-slate-500 hover:text-slate-800 hover:bg-slate-100/20"
                 }
               `}
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
             >
-              {/* Background gradient */}
-              <div
-                className={`
-                  absolute inset-0 rounded-2xl opacity-40 transition-opacity duration-300
-                  bg-gradient-to-br ${isSelected ? vibe.activeColor : "from-transparent to-transparent"}
-                `}
-              />
+              {/* Background gradient Shared Layout */}
+              {isSelected && (
+                <motion.div
+                  layoutId="activeVibeBg"
+                  className={`absolute inset-0 bg-gradient-to-br ${vibe.activeColor} opacity-50`}
+                  transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                />
+              )}
  
               {/* Content */}
               <div className="relative z-10 flex flex-col items-center gap-2">
