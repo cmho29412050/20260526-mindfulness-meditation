@@ -11,11 +11,12 @@ import { SessionSetup } from "@/components/session-setup"
 import { SessionControls } from "@/components/session-controls"
 import { PreMoodAssessment } from "@/components/pre-mood-assessment"
 import { BreathingSphere } from "@/components/breathing-sphere"
+import { BeginnerGuideDialog } from "@/components/beginner-guide-dialog"
 import { saveSession, updateLastSessionMoodAfter } from "@/lib/storage"
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ""
 
-type VibeMode = "focus" | "stress" | "sleep" | "home" | "rain"
+type VibeMode = "focus" | "stress" | "sleep" | "home" | "starry_sky" | "stream" | "zen_hall" | "snow_mountain"
 
 const GUIDE_MESSAGES = [
   "深吸一口氣，感受腹部的起伏。緩緩吐氣，放鬆全身。",
@@ -99,13 +100,14 @@ export default function MeditationApp() {
   const [controlsVisible, setControlsVisible] = useState(true)
   const [bgmType, setBgmType] = useState<string>("silent")
   const [showPreMoodAssessment, setShowPreMoodAssessment] = useState(false)
+  const [showBeginnerGuide, setShowBeginnerGuide] = useState(false)
   const [moodBefore, setMoodBefore] = useState<string | null>(null)
-  const [breathingRhythm, setBreathingRhythm] = useState<string>("4-4-8")
+  const [breathingRhythm, setBreathingRhythm] = useState<string>("natural")
 
   // Load breathing rhythm preference on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setBreathingRhythm(localStorage.getItem("zenith_breathing_rhythm") || "4-4-8")
+      setBreathingRhythm(localStorage.getItem("zenith_breathing_rhythm") || "natural")
     }
   }, [])
 
@@ -151,42 +153,14 @@ export default function MeditationApp() {
     window.dispatchEvent(event)
   }, [isInSession, isPaused])
 
-  // Play singing bowl chime helper (louder volume using dual instances + pitch lowered for depth)
+  // Play singing bowl chime using Web Audio API via Navbar (bypasses mobile browser autoplay blocks)
   const playBowlChime = useCallback((count: number = 1) => {
-    let playCount = 0
-    const playNext = () => {
-      if (playCount >= count) return
-      // 播放兩個重疊的音訊實體以增大音量
-      const audio1 = new Audio(`${basePath}/audio/bowl.mp3`)
-      audio1.volume = 1.0
-      if ('preservesPitch' in audio1) {
-        audio1.preservesPitch = false
-      } else if ('mozPreservesPitch' in audio1) {
-        (audio1 as any).mozPreservesPitch = false
-      } else if ('webkitPreservesPitch' in audio1) {
-        (audio1 as any).webkitPreservesPitch = false
-      }
-      audio1.playbackRate = 0.74 // 降低播放速率以使音頻更低沉、更有共鳴
-      audio1.play().catch(e => console.error("Bowl chime play failed:", e))
-
-      const audio2 = new Audio(`${basePath}/audio/bowl.mp3`)
-      audio2.volume = 1.0
-      if ('preservesPitch' in audio2) {
-        audio2.preservesPitch = false
-      } else if ('mozPreservesPitch' in audio2) {
-        (audio2 as any).mozPreservesPitch = false
-      } else if ('webkitPreservesPitch' in audio2) {
-        (audio2 as any).webkitPreservesPitch = false
-      }
-      audio2.playbackRate = 0.74
-      audio2.play().catch(e => console.error("Bowl chime play failed:", e))
-
-      playCount++
-      if (playCount < count) {
-        setTimeout(playNext, 4000)
-      }
+    if (typeof window !== "undefined") {
+      const event = new CustomEvent("zenith_play_audio", {
+        detail: { type: "bowl", count }
+      })
+      window.dispatchEvent(event)
     }
-    playNext()
   }, [])
 
   const speakGuidance = useCallback((text: string) => {
@@ -244,10 +218,19 @@ export default function MeditationApp() {
             setIsInSession(false)
             setShowPostMoodAssessment(true)
             
-            if (bgmType === "bowl") {
-              playBowlChime(3)
-            } else if (bgmType === "guide") {
+            if (bgmType === "guide") {
               speakGuidance("冥想已結束。請慢慢動動手指和腳趾，慢慢睜開雙眼。感謝您這段時間的專注。")
+            } else {
+              // 對於「無聲」、「冥想音樂」、「自訂音樂」和「頌缽磬音」，皆播放頌缽磬音提醒結束
+              playBowlChime(3)
+            }
+
+            // 發送桌面通知（若已獲得權限）
+            if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+              new Notification("老何的正念冥想", {
+                body: "您的正念冥想課程已圓滿結束。🙏",
+                icon: `${basePath}/icon.svg`
+              })
             }
 
             saveSession({
@@ -319,7 +302,26 @@ export default function MeditationApp() {
     }
   }, [isInSession])
 
+  const unlockWebAudioAndSpeech = () => {
+    if (typeof window === "undefined") return
+    
+    // Dispatch event to unlock AudioContext in Navbar
+    window.dispatchEvent(new Event("zenith_audio_unlock"))
+    
+    // Unlock SpeechSynthesis on iOS Safari
+    if ("speechSynthesis" in window) {
+      try {
+        const utterance = new SpeechSynthesisUtterance("")
+        utterance.volume = 0
+        window.speechSynthesis.speak(utterance)
+      } catch (e) {
+        console.error("SpeechSynthesis silent play failed:", e)
+      }
+    }
+  }
+
   const startMeditation = (duration: number) => {
+    unlockWebAudioAndSpeech()
     setSessionDuration(duration)
     setTimeRemaining(duration === 0 ? 0 : duration)
     setIsInSession(true)
@@ -327,12 +329,28 @@ export default function MeditationApp() {
   }
 
   const applyRecommendation = (duration: number, vibe: VibeMode, moodBeforeId: string, autoStart: boolean) => {
+    unlockWebAudioAndSpeech()
     setSessionDuration(duration)
     setTimeRemaining(duration === 0 ? 0 : duration)
     setVibeMode(vibe)
     setMoodBefore(moodBeforeId)
     setShowPreMoodAssessment(false)
     selectBgm("piano")
+
+    if (autoStart) {
+      setIsInSession(true)
+      setIsPaused(false)
+    }
+  }
+
+  const applyBeginnerRecommendation = (duration: number, vibe: VibeMode, moodBeforeId: string, autoStart: boolean) => {
+    unlockWebAudioAndSpeech()
+    setSessionDuration(duration)
+    setTimeRemaining(duration === 0 ? 0 : duration)
+    setVibeMode(vibe)
+    setMoodBefore(moodBeforeId)
+    setShowBeginnerGuide(false)
+    selectBgm("guide")
 
     if (autoStart) {
       setIsInSession(true)
@@ -368,8 +386,14 @@ export default function MeditationApp() {
               ? `${basePath}/images/beach.png`
               : vibeMode === "sleep"
               ? `${basePath}/images/forest.png`
-              : vibeMode === "rain"
-              ? `${basePath}/images/rain.png`
+              : vibeMode === "starry_sky"
+              ? `${basePath}/images/starry_sky.png`
+              : vibeMode === "stream"
+              ? `${basePath}/images/stream.png`
+              : vibeMode === "zen_hall"
+              ? `${basePath}/images/zen_hall.png`
+              : vibeMode === "snow_mountain"
+              ? `${basePath}/images/snow_mountain.png`
               : `${basePath}/images/home.png`
           })`,
           backgroundSize: "cover",
@@ -485,8 +509,7 @@ export default function MeditationApp() {
               onBgmChange={selectBgm}
               onStartSession={() => startMeditation(sessionDuration)}
               onOpenAssessment={() => setShowPreMoodAssessment(true)}
-              selectedRhythm={breathingRhythm}
-              onRhythmChange={selectRhythm}
+              onOpenBeginnerGuide={() => setShowBeginnerGuide(true)}
             />
           ) : (
             <motion.div
@@ -501,8 +524,19 @@ export default function MeditationApp() {
               <SessionControls
                 isInSession={isInSession}
                 isPaused={isPaused}
-                onStart={() => setIsInSession(true)}
-                onPause={() => setIsPaused((p) => !p)}
+                onStart={() => {
+                  unlockWebAudioAndSpeech()
+                  setIsInSession(true)
+                }}
+                onPause={() => {
+                  setIsPaused((p) => {
+                    const nextPaused = !p
+                    if (!nextPaused) {
+                      unlockWebAudioAndSpeech()
+                    }
+                    return nextPaused
+                  })
+                }}
                 onReset={() => {
                   setTimeRemaining(sessionDuration === 0 ? 0 : sessionDuration)
                   setIsPaused(true)
@@ -536,6 +570,11 @@ export default function MeditationApp() {
         isOpen={showPreMoodAssessment}
         onClose={() => setShowPreMoodAssessment(false)}
         onApply={applyRecommendation}
+      />
+      <BeginnerGuideDialog
+        isOpen={showBeginnerGuide}
+        onClose={() => setShowBeginnerGuide(false)}
+        onApply={applyBeginnerRecommendation}
       />
       <DmnInsightDialog open={showDmnInsight} onOpenChange={setShowDmnInsight} />
     </main>

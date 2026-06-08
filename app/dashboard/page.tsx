@@ -133,6 +133,14 @@ export default function DashboardPage() {
         return { label: "睡眠模式", icon: Moon, color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20" }
       case "home":
         return { label: "日常靜心", icon: HomeIcon, color: "text-slate-500 bg-slate-500/10 border-slate-500/20" }
+      case "starry_sky":
+        return { label: "星空模式", icon: Sparkles, color: "text-purple-400 bg-purple-500/10 border-purple-500/20" }
+      case "stream":
+        return { label: "溪流模式", icon: Activity, color: "text-teal-400 bg-teal-500/10 border-teal-500/20" }
+      case "zen_hall":
+        return { label: "禪堂模式", icon: HomeIcon, color: "text-stone-400 bg-stone-500/10 border-stone-500/20" }
+      case "snow_mountain":
+        return { label: "雪山模式", icon: Brain, color: "text-sky-300 bg-sky-400/10 border-sky-400/20" }
       default:
         return { label: "呼吸練習", icon: Activity, color: "text-teal-500 bg-teal-500/10 border-teal-500/20" }
     }

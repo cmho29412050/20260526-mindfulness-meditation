@@ -47,13 +47,7 @@ export function ParticleBackground({ isInSession, vibeMode }: ParticleBackground
       let hue = Math.random() * 60 + 180 // Default Blue to cyan range
       let opacity = Math.random() * 0.5 + 0.1
 
-      if (vibeMode === "rain") {
-        size = Math.random() * 1.5 + 0.8   // 雨滴較小較細
-        speedX = (Math.random() - 0.5) * 0.08
-        speedY = Math.random() * 2.0 + 1.4  // 快速向下滴落
-        hue = Math.random() * 15 + 195     // 雨天偏藍灰色
-        opacity = Math.random() * 0.4 + 0.15
-      } else if (vibeMode === "sleep") {
+      if (vibeMode === "sleep") {
         size = Math.random() * 2.5 + 2.0   // 螢火蟲稍大
         speedX = (Math.random() - 0.5) * 0.12
         speedY = (Math.random() - 0.5) * 0.12
@@ -77,6 +71,30 @@ export function ParticleBackground({ isInSession, vibeMode }: ParticleBackground
         speedY = (Math.random() - 0.5) * 0.15
         hue = Math.random() * 20 + 25      // 溫馨暖橘
         opacity = Math.random() * 0.55 + 0.15
+      } else if (vibeMode === "starry_sky") {
+        size = Math.random() * 1.5 + 0.5   // 星星微粒
+        speedX = (Math.random() - 0.5) * 0.04
+        speedY = (Math.random() - 0.5) * 0.04
+        hue = Math.random() * 40 + 260     // 紫藍星光
+        opacity = Math.random() * 0.65 + 0.15
+      } else if (vibeMode === "stream") {
+        size = Math.random() * 1.8 + 1.0   // 浮水光粒
+        speedX = Math.random() * 0.12 + 0.04
+        speedY = -(Math.random() * 0.15 + 0.05) // 漂浮上升
+        hue = Math.random() * 30 + 155     // 碧綠/青翠
+        opacity = Math.random() * 0.45 + 0.1
+      } else if (vibeMode === "zen_hall") {
+        size = Math.random() * 1.3 + 0.6   // 禪堂塵埃微光
+        speedX = (Math.random() - 0.5) * 0.03
+        speedY = (Math.random() - 0.5) * 0.03
+        hue = Math.random() * 20 + 35      // 暖金/石褐
+        opacity = Math.random() * 0.25 + 0.05
+      } else if (vibeMode === "snow_mountain") {
+        size = Math.random() * 2.2 + 0.8   // 雪花
+        speedX = (Math.random() - 0.5) * 0.15
+        speedY = Math.random() * 0.35 + 0.2  // 向下飄落
+        hue = 200                          // 潔白/冰藍
+        opacity = Math.random() * 0.5 + 0.15
       }
 
       return {
@@ -99,12 +117,15 @@ export function ParticleBackground({ isInSession, vibeMode }: ParticleBackground
         let waveX = Math.sin(time + particle.x * 0.01) * 0.5
         let waveY = Math.cos(time + particle.y * 0.01) * 0.5
 
-        if (vibeMode === "rain") {
-          waveX *= 0.15  // 雨滴幾乎直線下落，不易有大晃動
-          waveY = 0      // 縱向不擺動
-        } else if (vibeMode === "sleep") {
+        if (vibeMode === "sleep") {
           waveX *= 1.3   // 螢火蟲飛舞更輕飄
           waveY *= 1.3
+        } else if (vibeMode === "snow_mountain") {
+          waveX *= 0.8   // 雪花左右輕微晃動
+          waveY *= 0.1
+        } else if (vibeMode === "starry_sky" || vibeMode === "zen_hall") {
+          waveX *= 0.2   // 星空與禪堂幾乎微風徐徐
+          waveY *= 0.2
         }
 
         particle.x += particle.speedX + waveX
@@ -147,7 +168,7 @@ export function ParticleBackground({ isInSession, vibeMode }: ParticleBackground
       window.removeEventListener("resize", resizeCanvas)
       cancelAnimationFrame(animationRef.current)
     }
-  }, [isInSession])
+  }, [isInSession, vibeMode])
 
   return (
     <motion.canvas

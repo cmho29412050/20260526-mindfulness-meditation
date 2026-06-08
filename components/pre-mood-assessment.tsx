@@ -4,7 +4,7 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { CloudLightning, Battery, Shuffle, Moon, Smile, X, ArrowRight, Brain } from "lucide-react"
 
-type VibeMode = "focus" | "stress" | "sleep" | "home" | "rain"
+type VibeMode = "focus" | "stress" | "sleep" | "home" | "starry_sky" | "stream" | "zen_hall" | "snow_mountain"
 
 type PreMoodConfig = {
   id: string
@@ -98,7 +98,7 @@ export function PreMoodAssessment({ isOpen, onClose, onApply }: PreMoodAssessmen
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-md bg-white/10 border border-white/20 rounded-3xl p-6 shadow-2xl overflow-hidden"
+            className="relative w-full max-w-md bg-slate-950/75 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden backdrop-blur-2xl text-white"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Background Glow */}
@@ -144,8 +144,7 @@ export function PreMoodAssessment({ isOpen, onClose, onApply }: PreMoodAssessmen
                             whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.08)" }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setSelectedMood(mood)}
-                            style={{ backgroundColor: "rgba(255, 255, 255, 0.05)" }}
-                            className="flex items-center justify-between p-4 border border-white/10 rounded-2xl text-white hover:text-white transition-all text-left w-full group cursor-pointer"
+                            className="flex items-center justify-between p-4 border border-white/5 bg-white/5 rounded-2xl text-white hover:text-white transition-all text-left w-full group cursor-pointer hover:border-white/10"
                           >
                             <div className="flex items-center gap-3">
                               <div className="p-2 rounded-xl bg-white/5 text-sky-300 group-hover:bg-sky-500/20 transition-all">
