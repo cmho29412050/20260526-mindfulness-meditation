@@ -355,34 +355,10 @@ export function Navbar() {
       stopPrimaryBgm()
     }
 
-    // 2. Sync Ambient Channels
+    // 2. Sync Ambient Channels (Always stop since ambient mixing is removed)
     const ambientTypes = ["forest", "ocean", "river", "rain"]
     ambientTypes.forEach((type) => {
-      const enabled = localStorage.getItem(`zenith_ambient_${type}_enabled`) === "true"
-      const storedVol = parseFloat(localStorage.getItem(`zenith_ambient_${type}_volume`) || "40") / 100
-
-      if (enabled) {
-        const node = ambientNodesRef.current[type]
-        if (node) {
-          if (audioCtxRef.current) {
-            const ctx = audioCtxRef.current
-            const ambientBaseVolumes: Record<string, number> = {
-              forest: 0.6,
-              ocean: 0.7,
-              river: 0.6,
-              rain: 0.6,
-            }
-            const targetVolume = (ambientBaseVolumes[type] || 0.6) * storedVol
-            node.gain.gain.cancelScheduledValues(ctx.currentTime)
-            node.gain.gain.setValueAtTime(node.gain.gain.value, ctx.currentTime)
-            node.gain.gain.linearRampToValueAtTime(targetVolume, ctx.currentTime + 0.3)
-          }
-        } else {
-          playAmbientSound(type)
-        }
-      } else {
-        stopAmbientSound(type)
-      }
+      stopAmbientSound(type)
     })
   }
 

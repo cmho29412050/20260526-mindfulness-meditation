@@ -36,7 +36,7 @@ const GUIDE_STEPS: GuideStep[] = [
     title: "什麼是正念冥想？",
     subtitle: "大腦的溫和鍛鍊",
     icon: Brain,
-    iconColor: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+    iconColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
     content: "正念（Mindfulness）並非「放空大腦」或「抹除所有思緒」，而是溫柔地將注意力聚焦於此時此刻，不作任何評判。當你發現大腦開始胡思亂想時，這很正常，只需溫和地將注意力帶回呼吸即可。這就像是在給大腦的「注意力肌肉」進行重量訓練。",
     tip: "💡 秘訣：把雜念當作飄過的雲，你只需看著它，不隨它而去。"
   },
@@ -44,7 +44,7 @@ const GUIDE_STEPS: GuideStep[] = [
     title: "調整舒適的坐姿",
     subtitle: "放鬆與清醒的平衡",
     icon: User,
-    iconColor: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
+    iconColor: "text-teal-400 bg-teal-500/10 border-teal-500/20",
     content: "選擇一個安靜、不受打擾的角落。坐在椅子或軟墊上，雙腳著地，挺直脊椎以保持清醒，但記得放鬆雙肩與面部肌肉。雙手自然垂放在膝蓋或大腿上。深吸一口氣，輕輕地閉上雙眼。",
     tip: "💡 秘訣：脊椎像疊好的硬幣一樣挺拔，身體像水一樣放鬆。"
   },
@@ -148,7 +148,7 @@ export function BeginnerGuideDialog({ isOpen, onClose, onApply }: BeginnerGuideD
             onClick={(e) => e.stopPropagation()}
           >
             {/* Ambient Background Glow matching the active step icon theme */}
-            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-48 bg-sky-500/10 rounded-full blur-[80px] pointer-events-none transition-all duration-500" />
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-48 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none transition-all duration-500" />
 
             {/* Header / Close Button */}
             <div className="flex justify-between items-center z-10">
@@ -185,7 +185,7 @@ export function BeginnerGuideDialog({ isOpen, onClose, onApply }: BeginnerGuideD
                   <h3 className="text-xl font-light tracking-wide text-white">
                     {stepInfo.title}
                   </h3>
-                  <span className="text-xs text-sky-400/80 tracking-widest font-light uppercase mt-1 mb-4">
+                  <span className="text-xs text-emerald-400/80 tracking-widest font-light uppercase mt-1 mb-4">
                     {stepInfo.subtitle}
                   </span>
 
@@ -216,7 +216,7 @@ export function BeginnerGuideDialog({ isOpen, onClose, onApply }: BeginnerGuideD
                       setCurrentStep(idx)
                     }}
                     className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                      idx === currentStep ? "w-6 bg-sky-400" : "w-1.5 bg-white/20 hover:bg-white/40"
+                      idx === currentStep ? "w-6 bg-emerald-400" : "w-1.5 bg-white/20 hover:bg-white/40"
                     }`}
                     aria-label={`Go to step ${idx + 1}`}
                   />
@@ -260,7 +260,7 @@ export function BeginnerGuideDialog({ isOpen, onClose, onApply }: BeginnerGuideD
                       whileHover={{ scale: 1.03, boxShadow: "0 0 15px rgba(56, 189, 248, 0.25)" }}
                       whileTap={{ scale: 0.97 }}
                       onClick={handleStartExperience}
-                      className="flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-medium tracking-widest bg-gradient-to-r from-sky-500 to-indigo-600 text-white transition-all shadow-lg cursor-pointer"
+                      className="flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-medium tracking-widest bg-gradient-to-r from-emerald-500 to-teal-600 text-white transition-all shadow-lg cursor-pointer"
                     >
                       <Play className="w-3.5 h-3.5 fill-white" />
                       開啟 2 分鐘體驗

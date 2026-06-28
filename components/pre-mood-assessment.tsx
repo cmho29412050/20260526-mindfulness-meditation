@@ -24,7 +24,9 @@ const PRE_MOODS: PreMoodConfig[] = [
     duration: 15 * 60,
     vibe: "stress",
     vibeLabel: "海邊",
-    reason: "大腦在焦慮時需要溫柔的引導與調節。15 分鐘的短暫停留能有效幫助您調節呼吸、安定副交感神經，配合溫暖放鬆的「壓力釋放（海邊）」氛圍，有助於舒緩緊繃的身體與神經系統。",
+    reason: "大腦在焦慮時需要溫柔的引導。15 分鐘的呼吸練習能調節副交感神經，配合海邊氛圍能提升心率變異度（HRV）的迷走神經張力（nHF）。7T-fMRI 臨床研究證實，規律正念可直接下調皮質下威脅中心（如杏仁核、紋狀體）的反應敏感度，達成隱性情緒調節，減緩焦慮生理負荷。",
+    colorClass: "text-emotion-anxious",
+    bgHoverClass: "group-hover:bg-emotion-anxious/20",
   },
   {
     id: "tired",
@@ -33,7 +35,9 @@ const PRE_MOODS: PreMoodConfig[] = [
     duration: 10 * 60,
     vibe: "sleep",
     vibeLabel: "森林",
-    reason: "疲憊時過長的冥想反而容易讓人陷入昏睡或產生挫折感。10 分鐘的短暫放鬆，配合「安穩睡眠（森林）」氛圍，能為疲累的身體提供溫和的能量充電，讓您在清醒與休息之間找到平衡。",
+    reason: "疲憊時過長的冥想容易讓人昏睡或沮喪。10 分鐘的短暫放鬆，配合「安穩睡眠（森林）」氛圍，能為疲累的大腦提供溫和的能量充電。研究顯示，此時有助於下調大腦整體皮質喚醒度，讓大腦在清醒與深度休息之間找到平衡。",
+    colorClass: "text-emotion-tired",
+    bgHoverClass: "group-hover:bg-emotion-tired/20",
   },
   {
     id: "distracted",
@@ -42,7 +46,9 @@ const PRE_MOODS: PreMoodConfig[] = [
     duration: 15 * 60,
     vibe: "focus",
     vibeLabel: "山上",
-    reason: "當心神渙散、大腦有太多思緒在賽跑時，15 分鐘的呼吸練習是收斂注意力的黃金時長。搭配「專注收斂（山上）」氛圍，能溫柔地將大腦從 DMN（預設模式網路）的雜念模式中抽離，重回當下。",
+    reason: "當心神渙散時，15 分鐘呼吸練習是收斂注意力的黃金時長。配合山上氛圍，能在神經機制上顯著抑制大腦 DMN（預設模式網路）的 Microstate C 動態，壓制由海馬迴與顳葉驅動的自傳體反芻思維，並調節前扣帶迴（ACC）活化以優化反應選擇，提升認知彈性與專注力。",
+    colorClass: "text-emotion-distracted",
+    bgHoverClass: "group-hover:bg-emotion-distracted/20",
   },
   {
     id: "insomnia",
@@ -51,7 +57,9 @@ const PRE_MOODS: PreMoodConfig[] = [
     duration: 30 * 60,
     vibe: "sleep",
     vibeLabel: "森林",
-    reason: "為了幫助您順利過渡到深沉睡眠，30 分鐘的漸進式引導是最理想的時長。配合「安穩睡眠（森林）」氛圍，讓您在輕柔的頻率中慢慢放鬆全身肌肉，自然而然地入睡。",
+    reason: "為幫助您順利過渡到深沉睡眠，30 分鐘的引導是最理想時長。配合森林氛圍，正念能放鬆全身肌肉、調控副交感神經，並協助大腦關閉 DMN（預設模式網路）的自我指涉運作，降低入睡前的背景噪音，自然而然地安穩入眠。",
+    colorClass: "text-emotion-insomnia",
+    bgHoverClass: "group-hover:bg-emotion-insomnia/20",
   },
   {
     id: "calm",
@@ -60,7 +68,9 @@ const PRE_MOODS: PreMoodConfig[] = [
     duration: 15 * 60,
     vibe: "home",
     vibeLabel: "家裡",
-    reason: "維持每天穩定的正念習慣是重塑大腦神經連結的關鍵。15 分鐘的日常練習，配合「居家安定（家裡）」氛圍，能讓您在平穩的狀態中持續滋養內心的平靜，為一整天注入專注的能量。",
+    reason: "每日正念是重塑大腦神經可塑性的關鍵。15 分鐘的日常練習，配合家裡氛圍，能加強執行網絡（CEN）與 DMN（預設模式網絡）之間的拮抗與反相關性，恢復健康的跨網絡切換，並增強 dlPFC（背外側前額葉）對大腦的元認知監控能力。",
+    colorClass: "text-emotion-calm",
+    bgHoverClass: "group-hover:bg-emotion-calm/20",
   },
 ]
 
@@ -147,14 +157,17 @@ export function PreMoodAssessment({ isOpen, onClose, onApply }: PreMoodAssessmen
                             className="flex items-center justify-between p-4 border border-white/5 bg-white/5 rounded-2xl text-white hover:text-white transition-all text-left w-full group cursor-pointer hover:border-white/10"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-xl bg-white/5 text-sky-300 group-hover:bg-sky-500/20 transition-all">
-                                <Icon className="w-5 h-5" strokeWidth={1.5} />
+                              <div className={`p-2 rounded-xl bg-white/5 transition-all ${mood.colorClass || 'text-sky-300'} ${mood.bgHoverClass || 'group-hover:bg-sky-500/20'}`}>
+                                <Icon className="w-5 h-5" />
                               </div>
-                              <span className="text-sm font-light tracking-wider">
-                                {mood.label}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className="font-medium text-lg">{mood.label}</span>
+                                <span className="text-xs text-white/50 font-mono tracking-wider">
+                                  {mood.vibeLabel} • {mood.duration / 60}m
+                                </span>
+                              </div>
                             </div>
-                            <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-white/70 transition-transform group-hover:translate-x-1" />
+                            <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-white/70 transition-colors transform group-hover:translate-x-1" />
                           </motion.button>
                         )
                       })}

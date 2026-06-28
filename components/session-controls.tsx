@@ -159,7 +159,7 @@ export function SessionControls({
                 }}
                 className="text-white/70 hover:text-white transition-colors cursor-pointer p-0.5"
               >
-                {volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-sky-300" />}
+                {volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-emerald-300" />}
               </button>
               <input
                 type="range"
@@ -172,7 +172,7 @@ export function SessionControls({
                   localStorage.setItem("zenith_bgm_volume", String(val))
                   window.dispatchEvent(new Event("zenith_bgm_volume_change"))
                 }}
-                className="w-20 sm:w-24 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-sky-400 hover:accent-sky-300 transition-all focus:outline-none"
+                className="w-20 sm:w-24 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-400 hover:accent-emerald-300 transition-all focus:outline-none"
               />
               <span className="text-[10px] text-white/60 font-light w-8 text-right">{volume}%</span>
             </div>

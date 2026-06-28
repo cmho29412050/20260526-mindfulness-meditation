@@ -13,10 +13,11 @@ import { PreMoodAssessment } from "@/components/pre-mood-assessment"
 import { BreathingSphere } from "@/components/breathing-sphere"
 import { BeginnerGuideDialog } from "@/components/beginner-guide-dialog"
 import { saveSession, updateLastSessionMoodAfter } from "@/lib/storage"
+import { getCustomImage } from "@/lib/db"
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ""
 
-type VibeMode = "focus" | "stress" | "sleep" | "home" | "starry_sky" | "stream" | "zen_hall" | "snow_mountain"
+type VibeMode = "focus" | "stress" | "sleep" | "home" | "starry_sky" | "stream" | "zen_hall" | "snow_mountain" | "custom"
 
 const GUIDE_MESSAGES = [
   "深吸一口氣，感受腹部的起伏。緩緩吐氣，放鬆全身。",
@@ -103,6 +104,42 @@ export default function MeditationApp() {
   const [showBeginnerGuide, setShowBeginnerGuide] = useState(false)
   const [moodBefore, setMoodBefore] = useState<string | null>(null)
   const [breathingRhythm, setBreathingRhythm] = useState<string>("natural")
+  const [customImageUrl, setCustomImageUrl] = useState<string | null>(null)
+
+  // Load custom image from IndexedDB
+  useEffect(() => {
+    const loadCustomImage = async () => {
+      try {
+        const imgData = await getCustomImage()
+        if (imgData && imgData.blob) {
+          setCustomImageUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev)
+            return URL.createObjectURL(imgData.blob)
+          })
+        }
+      } catch (e) {
+        console.error("Load custom image error", e)
+      }
+    }
+    loadCustomImage()
+
+    const handleImageChange = () => {
+      loadCustomImage()
+    }
+    window.addEventListener("zenith_custom_image_change", handleImageChange)
+    return () => {
+      window.removeEventListener("zenith_custom_image_change", handleImageChange)
+    }
+  }, [])
+
+  // Clean up Object URL
+  useEffect(() => {
+    return () => {
+      if (customImageUrl) {
+        URL.revokeObjectURL(customImageUrl)
+      }
+    }
+  }, [customImageUrl])
 
   // Load breathing rhythm preference on mount
   useEffect(() => {
@@ -168,9 +205,25 @@ export default function MeditationApp() {
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = "zh-TW"
-    utterance.rate = 0.40 // 更加緩慢穩定的引導速度 (Slower rate for deeper relaxation)
-    utterance.pitch = 0.85 // 更溫柔、低沉平緩的語調 (Lower pitch for a gentler, softer tone)
-    utterance.volume = 0.75 // 稍微調低音量以顯溫柔 (Slightly softer volume)
+
+    // 篩選最自然的中文合成語音 (Edge/Chrome 通常有較自然的 Microsoft/Google 線上高清人聲)
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      const voices = window.speechSynthesis.getVoices()
+      const preferredVoice = voices.find(
+        (v) =>
+          v.lang.includes("zh-TW") &&
+          (v.name.includes("Microsoft") || v.name.includes("Google") || v.name.includes("Yating") || v.name.includes("Yaoyao"))
+      ) || voices.find((v) => v.lang.includes("zh-TW"))
+        || voices.find((v) => v.lang.includes("zh-CN"))
+
+      if (preferredVoice) {
+        utterance.voice = preferredVoice
+      }
+    }
+
+    utterance.rate = 0.80 // 沉靜且自然的緩慢速度，消除因過慢產生的機械碎音與拉伸顫音
+    utterance.pitch = 0.95 // 溫和且穩重的語調
+    utterance.volume = 0.85 // 合適音量
     window.speechSynthesis.speak(utterance)
   }, [])
 
@@ -184,13 +237,11 @@ export default function MeditationApp() {
   // Start of session chime/guidance trigger
   useEffect(() => {
     if (isInSession) {
-      if (bgmType === "bowl") {
+      if (bgmType === "bowl" || bgmType === "guide") {
         playBowlChime(1)
-      } else if (bgmType === "guide") {
-        speakGuidance("歡迎來到正念冥想。請調整舒服的坐姿，輕輕閉上眼睛，將注意力帶回到呼吸上。")
       }
     }
-  }, [isInSession, bgmType, playBowlChime, speakGuidance])
+  }, [isInSession, bgmType, playBowlChime])
 
   // Timer countdown/count-up and interval chime trigger
   useEffect(() => {
@@ -203,13 +254,10 @@ export default function MeditationApp() {
         if (isInfinite) {
           const nextTime = prev + 1
           
-          // Strike the bowl once every 30 seconds interval / Voice guidance every 60 seconds
+          // Strike the bowl once every 30 seconds interval
           if (nextTime > 0) {
-            if (nextTime % 30 === 0 && bgmType === "bowl") {
+            if (nextTime % 30 === 0 && (bgmType === "bowl" || bgmType === "guide")) {
               playBowlChime(1)
-            } else if (nextTime % 60 === 0 && bgmType === "guide") {
-              const msg = GUIDE_MESSAGES[Math.floor((nextTime / 60) % GUIDE_MESSAGES.length)]
-              speakGuidance(msg)
             }
           }
           return nextTime
@@ -218,12 +266,8 @@ export default function MeditationApp() {
             setIsInSession(false)
             setShowPostMoodAssessment(true)
             
-            if (bgmType === "guide") {
-              speakGuidance("冥想已結束。請慢慢動動手指和腳趾，慢慢睜開雙眼。感謝您這段時間的專注。")
-            } else {
-              // 對於「無聲」、「冥想音樂」、「自訂音樂」和「頌缽磬音」，皆播放頌缽磬音提醒結束
-              playBowlChime(3)
-            }
+            // 播放頌缽磬音提醒結束
+            playBowlChime(3)
 
             // 發送桌面通知（若已獲得權限）
             if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
@@ -245,13 +289,10 @@ export default function MeditationApp() {
           const nextTime = prev - 1
           const elapsed = sessionDuration - nextTime
           
-          // Strike the bowl once every 30 seconds interval / Voice guidance every 60 seconds
+          // Strike the bowl once every 30 seconds interval
           if (elapsed > 0 && nextTime > 0) {
-            if (elapsed % 30 === 0 && bgmType === "bowl") {
+            if (elapsed % 30 === 0 && (bgmType === "bowl" || bgmType === "guide")) {
               playBowlChime(1)
-            } else if (elapsed % 60 === 0 && bgmType === "guide") {
-              const msg = GUIDE_MESSAGES[Math.floor((elapsed / 60) % GUIDE_MESSAGES.length)]
-              speakGuidance(msg)
             }
           }
 
@@ -261,7 +302,7 @@ export default function MeditationApp() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [isInSession, isPaused, sessionDuration, bgmType, playBowlChime, speakGuidance, moodBefore])
+  }, [isInSession, isPaused, sessionDuration, bgmType, playBowlChime, moodBefore])
 
   // Hide controls on inactivity during session
   useEffect(() => {
@@ -350,7 +391,7 @@ export default function MeditationApp() {
     setVibeMode(vibe)
     setMoodBefore(moodBeforeId)
     setShowBeginnerGuide(false)
-    selectBgm("guide")
+    selectBgm("bowl")
 
     if (autoStart) {
       setIsInSession(true)
@@ -386,6 +427,8 @@ export default function MeditationApp() {
               ? `${basePath}/images/beach.png`
               : vibeMode === "sleep"
               ? `${basePath}/images/forest.png`
+              : vibeMode === "custom" && customImageUrl
+              ? customImageUrl
               : vibeMode === "starry_sky"
               ? `${basePath}/images/starry_sky.png`
               : vibeMode === "stream"
@@ -403,7 +446,7 @@ export default function MeditationApp() {
         aria-hidden="true"
       />
       {/* Dark overlay to ensure text readability */}
-      <div className="fixed inset-0 bg-black/45 backdrop-blur-[2px]" aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/15 backdrop-blur-[2px]" aria-hidden="true" />
 
       {/* Subtle radial gradient overlay */}
       <div

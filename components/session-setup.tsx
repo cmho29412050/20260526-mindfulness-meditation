@@ -8,20 +8,15 @@ import {
   VolumeX, 
   Volume2, 
   Music, 
-  Bell, 
-  Trees, 
-  Waves, 
-  Droplet, 
-  CloudRain, 
-  Moon,
   Sparkles,
   Mic,
+  Compass,
   Upload as UploadIcon,
-  Compass
+  Bell
 } from "lucide-react"
 import { saveCustomAudio } from "@/lib/db"
 
-type VibeMode = "focus" | "stress" | "sleep" | "home" | "starry_sky" | "stream" | "zen_hall" | "snow_mountain"
+type VibeMode = "focus" | "stress" | "sleep" | "home" | "starry_sky" | "stream" | "zen_hall" | "snow_mountain" | "custom"
 
 interface SessionSetupProps {
   vibeMode: VibeMode
@@ -46,16 +41,10 @@ export function SessionSetup({
   onOpenAssessment,
   onOpenBeginnerGuide,
 }: SessionSetupProps) {
-  const durations = [3, 15, 30, 60, 0, -1]
+  const durations = [3, 15, 30, -1]
   const [volume, setVolume] = useState(60)
   const [customAudioName, setCustomAudioName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [ambientSounds, setAmbientSounds] = useState<Record<string, { enabled: boolean; volume: number }>>({
-    forest: { enabled: false, volume: 40 },
-    ocean: { enabled: false, volume: 40 },
-    river: { enabled: false, volume: 40 },
-    rain: { enabled: false, volume: 40 },
-  })
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -64,47 +53,8 @@ export function SessionSetup({
         setVolume(parseInt(stored))
       }
       setCustomAudioName(localStorage.getItem("zenith_custom_bgm_name"))
-
-      const newAmbient = {
-        forest: { enabled: false, volume: 40 },
-        ocean: { enabled: false, volume: 40 },
-        river: { enabled: false, volume: 40 },
-        rain: { enabled: false, volume: 40 },
-      }
-      const types = ["forest", "ocean", "river", "rain"]
-      types.forEach((type) => {
-        const enabled = localStorage.getItem(`zenith_ambient_${type}_enabled`) === "true"
-        const vol = parseInt(localStorage.getItem(`zenith_ambient_${type}_volume`) || "40")
-        newAmbient[type as "forest" | "ocean" | "river" | "rain"] = { enabled, volume: vol }
-      })
-      setAmbientSounds(newAmbient)
     }
   }, [])
-
-  const handleAmbientToggle = (type: string) => {
-    setAmbientSounds((prev) => {
-      const target = prev[type]
-      const nextEnabled = !target.enabled
-      localStorage.setItem(`zenith_ambient_${type}_enabled`, String(nextEnabled))
-      window.dispatchEvent(new Event("zenith_bgm_change"))
-      return {
-        ...prev,
-        [type]: { ...target, enabled: nextEnabled }
-      }
-    })
-  }
-
-  const handleAmbientVolumeChange = (type: string, val: number) => {
-    setAmbientSounds((prev) => {
-      const target = prev[type]
-      localStorage.setItem(`zenith_ambient_${type}_volume`, String(val))
-      window.dispatchEvent(new Event("zenith_bgm_volume_change"))
-      return {
-        ...prev,
-        [type]: { ...target, volume: val }
-      }
-    })
-  }
 
   const handleVolumeSliderChange = (newVal: number) => {
     setVolume(newVal)
@@ -150,7 +100,7 @@ export function SessionSetup({
     fileInputRef.current?.click()
   }
 
-  const isCustomSelected = ! [3 * 60, 15 * 60, 30 * 60, 60 * 60, 0].includes(sessionDuration)
+  const isCustomSelected = ! [3 * 60, 15 * 60, 30 * 60].includes(sessionDuration)
  
   return (
     <motion.div
@@ -165,9 +115,9 @@ export function SessionSetup({
           whileHover={{ scale: 1.01, backgroundColor: "rgba(14, 165, 233, 0.12)" }}
           whileTap={{ scale: 0.99 }}
           onClick={onOpenAssessment}
-          className="w-full py-2.5 rounded-2xl border border-dashed border-sky-500/30 text-sky-300 text-xs font-light tracking-[0.2em] flex items-center justify-center gap-2 cursor-pointer transition-all bg-sky-500/5 hover:border-sky-400/60 hover:text-sky-200"
+          className="w-full py-2.5 rounded-2xl border border-dashed border-emerald-500/30 text-emerald-300 text-xs font-light tracking-[0.2em] flex items-center justify-center gap-2 cursor-pointer transition-all bg-emerald-500/5 hover:border-emerald-400/60 hover:text-emerald-200"
         >
-          <Sparkles className="w-4 h-4 text-sky-400 animate-pulse" />
+          <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
           智慧身心評估推薦
         </motion.button>
 
@@ -177,7 +127,7 @@ export function SessionSetup({
           onClick={onOpenBeginnerGuide}
           className="w-full py-2.5 rounded-2xl border border-white/10 text-white/80 text-xs font-light tracking-[0.2em] flex items-center justify-center gap-2 cursor-pointer transition-all bg-white/5 hover:border-white/20 hover:text-white"
         >
-          <Compass className="w-4 h-4 text-sky-400 animate-pulse" />
+          <Compass className="w-4 h-4 text-emerald-400 animate-pulse" />
           初學者入門指南 🧘
         </motion.button>
       </div>
@@ -199,13 +149,13 @@ export function SessionSetup({
             <p className="text-[10px] sm:text-xs uppercase tracking-[0.3em] text-white/40 font-medium mb-1">
               選擇冥想時間
             </p>
-            <div className="grid grid-cols-3 gap-2 w-full">
+            <div className="grid grid-cols-4 gap-2 w-full">
               {durations.map((mins) => {
                 const isSelected = mins === -1 
                   ? isCustomSelected
-                  : (mins === 0 ? sessionDuration === 0 : sessionDuration === mins * 60)
+                  : (sessionDuration === mins * 60)
                 
-                const label = mins === -1 ? "自訂" : (mins === 0 ? "無限制" : `${mins} 分`)
+                const label = mins === -1 ? "自訂" : `${mins} 分`
                 return (
                   <motion.button
                     key={mins}
@@ -221,14 +171,14 @@ export function SessionSetup({
                     }}
                     className={`relative py-2 rounded-full border transition-all duration-300 text-xs font-normal cursor-pointer text-center w-full overflow-hidden select-none ${
                       isSelected
-                        ? "border-sky-500/30 text-sky-300 font-medium shadow-[0_0_12px_rgba(14,165,233,0.05)]"
+                        ? "border-emerald-500/30 text-emerald-300 font-medium shadow-[0_0_12px_rgba(14,165,233,0.05)]"
                         : "border-white/5 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 hover:border-white/10"
                     }`}
                   >
                     {isSelected && (
                       <motion.div
                         layoutId="activeDurationBg"
-                        className="absolute inset-0 bg-sky-500/20"
+                        className="absolute inset-0 bg-emerald-500/20"
                         transition={{ type: "spring", stiffness: 380, damping: 30 }}
                       />
                     )}
@@ -259,7 +209,7 @@ export function SessionSetup({
                           onDurationChange(val * 60)
                           localStorage.setItem("zenith_custom_duration", String(val))
                         }}
-                        className="w-12 h-6 bg-white/10 border border-white/10 rounded text-center text-xs font-medium text-sky-400 focus:outline-none focus:border-sky-400"
+                        className="w-12 h-6 bg-white/10 border border-white/10 rounded text-center text-xs font-medium text-emerald-400 focus:outline-none focus:border-emerald-400"
                       />
                       <span className="text-xs text-white/40 font-light">分鐘</span>
                     </div>
@@ -275,7 +225,7 @@ export function SessionSetup({
                       onDurationChange(val * 60)
                       localStorage.setItem("zenith_custom_duration", String(val))
                     }}
-                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-sky-400 hover:accent-sky-500 transition-all focus:outline-none"
+                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-400 hover:accent-emerald-500 transition-all focus:outline-none"
                   />
                 </motion.div>
               )}
@@ -290,12 +240,11 @@ export function SessionSetup({
             <p className="text-[10px] sm:text-xs uppercase tracking-[0.3em] text-white/40 font-medium mb-1">
               選擇背景音樂
             </p>
-            <div className="grid grid-cols-3 gap-2 w-full">
+            <div className="grid grid-cols-4 gap-2 w-full">
               {[
                 { id: "silent", label: "無聲", icon: VolumeX },
-                { id: "guide", label: "有聲指導", icon: Mic },
+                { id: "bowl", label: "頌缽引導", icon: Bell },
                 { id: "piano", label: "冥想音樂", icon: Music },
-                { id: "bowl", label: "頌缽磬音", icon: Bell },
                 { id: "custom", label: customAudioName || "自訂音樂", icon: UploadIcon },
               ].map((item) => {
                 const Icon = item.icon
@@ -308,14 +257,14 @@ export function SessionSetup({
                     onClick={() => handleBgmClick(item.id)}
                     className={`relative flex items-center justify-center gap-1.5 py-2 px-1 rounded-full border transition-all duration-300 text-xs font-normal cursor-pointer w-full text-center overflow-hidden select-none ${
                       isSelected
-                        ? "border-sky-500/30 text-sky-300 font-medium shadow-[0_0_12px_rgba(14,165,233,0.05)]"
+                        ? "border-emerald-500/30 text-emerald-300 font-medium shadow-[0_0_12px_rgba(14,165,233,0.05)]"
                         : "border-white/5 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 hover:border-white/10"
                     }`}
                   >
                     {isSelected && (
                       <motion.div
                         layoutId="activeBgmBg"
-                        className="absolute inset-0 bg-sky-500/20"
+                        className="absolute inset-0 bg-emerald-500/20"
                         transition={{ type: "spring", stiffness: 380, damping: 30 }}
                       />
                     )}
@@ -325,12 +274,12 @@ export function SessionSetup({
                 )
               })}
             </div>
-            {customAudioName && (
+            {customAudioName && bgmType === "custom" && (
               <div className="flex items-center justify-between w-full px-1 text-[10px] text-white/45 font-light border-t border-white/5 pt-2 mt-1">
                 <span>已上傳音訊：{customAudioName}</span>
                 <button
                   onClick={handleReuploadClick}
-                  className="text-sky-400 hover:text-sky-300 transition-colors font-medium cursor-pointer"
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors font-medium cursor-pointer"
                 >
                   重新上傳
                 </button>
@@ -345,88 +294,6 @@ export function SessionSetup({
             />
           </div>
 
-          {/* Ambient Sound Mixing */}
-          <div className="flex flex-col items-center gap-2 w-full mt-1 border-t border-white/5 pt-3">
-            <p className="text-[10px] sm:text-xs uppercase tracking-[0.3em] text-white/40 font-medium mb-1">
-              環境音效混音 (可多選)
-            </p>
-            <div className="grid grid-cols-2 gap-2 w-full">
-              {[
-                { id: "forest", label: "蟲鳴鳥叫", icon: Trees },
-                { id: "ocean", label: "海浪聲音", icon: Waves },
-                { id: "river", label: "流水聲音", icon: Droplet },
-                { id: "rain", label: "雨天聲音", icon: CloudRain },
-              ].map((item) => {
-                const Icon = item.icon
-                const soundState = ambientSounds[item.id] || { enabled: false, volume: 40 }
-                const isSelected = soundState.enabled
-                
-                return (
-                  <motion.button
-                    key={item.id}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => handleAmbientToggle(item.id)}
-                    className={`relative flex items-center justify-center gap-1.5 py-2 px-1 rounded-full border transition-all duration-300 text-xs font-normal cursor-pointer w-full text-center overflow-hidden select-none ${
-                      isSelected
-                        ? "border-sky-500/30 text-sky-300 font-medium shadow-[0_0_12px_rgba(14,165,233,0.05)]"
-                        : "border-white/5 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 hover:border-white/10"
-                    }`}
-                  >
-                    {isSelected && (
-                      <motion.div
-                        layoutId={`activeAmbientBg-${item.id}`}
-                        className="absolute inset-0 bg-sky-500/20"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      />
-                    )}
-                    <Icon className="w-3.5 h-3.5 flex-shrink-0 relative z-10" />
-                    <span className="truncate relative z-10">{item.label}</span>
-                  </motion.button>
-                )
-              })}
-            </div>
-            
-            {/* Expandable Sliders for Enabled Sounds */}
-            <div className="w-full flex flex-col gap-2 mt-1 px-1">
-              <AnimatePresence>
-                {Object.entries(ambientSounds).map(([id, state]) => {
-                  if (!state.enabled) return null
-                  const labelMap: Record<string, string> = {
-                    forest: "蟲鳴鳥叫音量",
-                    ocean: "海浪聲音量",
-                    river: "流水聲音量",
-                    rain: "雨天聲音量"
-                  }
-                  return (
-                    <motion.div
-                      key={id}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="flex flex-col gap-1 bg-white/5 border border-white/5 p-2.5 rounded-2xl w-full overflow-hidden"
-                    >
-                      <div className="flex items-center justify-between w-full text-[10px] text-white/45 font-medium">
-                        <span>{labelMap[id]}</span>
-                        <span className="text-sky-400 font-light">{state.volume}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="5"
-                        value={state.volume}
-                        onChange={(e) => handleAmbientVolumeChange(id, parseInt(e.target.value))}
-                        className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-sky-400 hover:accent-sky-500 transition-all focus:outline-none"
-                      />
-                    </motion.div>
-                  )
-                })}
-              </AnimatePresence>
-            </div>
-          </div>
-
           {/* Background Music Volume Slider */}
           {bgmType !== "silent" && (
             <div className="flex flex-col items-center gap-2 w-full mt-1 border-t border-white/5 pt-3">
@@ -434,14 +301,14 @@ export function SessionSetup({
                 <span className="text-[10px] sm:text-xs uppercase tracking-[0.3em] text-white/40 font-medium">
                   背景音樂音量
                 </span>
-                <span className="text-xs text-sky-400 font-light tracking-wide">{volume}%</span>
+                <span className="text-xs text-emerald-400 font-light tracking-wide">{volume}%</span>
               </div>
               <div className="flex items-center gap-3 w-full px-1">
                 <button 
                   onClick={() => handleVolumeSliderChange(volume === 0 ? 60 : 0)}
                   className="text-white/40 hover:text-white transition-colors p-1"
                 >
-                  {volume === 0 ? <VolumeX className="w-4 h-4 text-white/40" /> : <Volume2 className="w-4 h-4 text-sky-400" />}
+                  {volume === 0 ? <VolumeX className="w-4 h-4 text-white/40" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
                 </button>
                 <input
                   type="range"
@@ -450,7 +317,7 @@ export function SessionSetup({
                   step="5"
                   value={volume}
                   onChange={(e) => handleVolumeSliderChange(parseInt(e.target.value))}
-                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-sky-400 hover:accent-sky-500 transition-all focus:outline-none"
+                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-400 hover:accent-emerald-500 transition-all focus:outline-none"
                 />
               </div>
             </div>
@@ -463,7 +330,7 @@ export function SessionSetup({
         whileHover={{ scale: 1.01, boxShadow: "0 0 20px rgba(56, 189, 248, 0.2)" }}
         whileTap={{ scale: 0.99 }}
         onClick={onStartSession}
-        className="w-full mt-4 py-3 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white text-sm font-medium tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer hover:from-sky-400 hover:to-indigo-500"
+        className="w-full mt-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer hover:from-emerald-400 hover:to-teal-500"
       >
         <Play className="w-4 h-4 text-white fill-white/20 animate-pulse" />
         開始正念冥想

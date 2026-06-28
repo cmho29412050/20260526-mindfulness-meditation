@@ -11,48 +11,62 @@ type Mood = {
   message: string
 }
 
-const POST_MOODS: Mood[] = [
+const POST_MOODS: (Mood & { colorClass: string, bgHoverClass: string })[] = [
   {
     id: "calm",
     label: "平靜",
     icon: Wind,
     message: "太好了，您找到了片刻的安寧。請帶著這份寧靜，繼續溫和地前行。",
+    colorClass: "text-emotion-calm",
+    bgHoverClass: "hover:bg-emotion-calm/20",
   },
   {
     id: "refreshed",
     label: "煥然一新",
     icon: Zap,
     message: "太棒了！帶著這份重新注入的能量，開啟您充實的剩餘時光。",
+    colorClass: "text-emerald-400",
+    bgHoverClass: "hover:bg-emerald-400/20",
   },
   {
     id: "sleepy",
     label: "放鬆想睡",
     icon: Coffee,
     message: "正念冥想能深層放鬆身體。若身體需要休息，請順應它的呼喚入睡。",
+    colorClass: "text-emotion-tired",
+    bgHoverClass: "hover:bg-emotion-tired/20",
   },
   {
     id: "still_stressed",
     label: "仍有壓力",
     icon: CloudLightning,
     message: "沒關係的。大腦調適有時需要更長的時間。今天，請對自己特別溫柔。",
+    colorClass: "text-emotion-anxious",
+    bgHoverClass: "hover:bg-emotion-anxious/20",
   },
   {
     id: "emotional",
     label: "情緒起伏",
     icon: CloudRain,
     message: "冥想會喚醒內心深處的感受。溫和地觀察它、允許它，不作任何批判。",
+    colorClass: "text-emotion-distracted",
+    bgHoverClass: "hover:bg-emotion-distracted/20",
   },
   {
     id: "neutral",
     label: "平常心",
     icon: Meh,
     message: "平穩的心境是最好的基石。繼續維持這種平靜的觀察即可。",
+    colorClass: "text-slate-300",
+    bgHoverClass: "hover:bg-slate-300/20",
   },
   {
     id: "happy",
     label: "快樂",
     icon: Smile,
     message: "太美好了！讓這份溫暖喜悅的正能量，傳遞並感染您身邊的每一個人。",
+    colorClass: "text-amber-300",
+    bgHoverClass: "hover:bg-amber-300/20",
   },
 ]
 
@@ -184,17 +198,17 @@ export function PostMoodAssessment({ isOpen, onClose, onComplete, moodBefore }: 
                       {POST_MOODS.map((mood) => (
                         <motion.button
                           key={mood.id}
-                          whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
+                          whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setSelectedMood(mood)}
-                          style={{ backgroundColor: "rgba(255, 255, 255, 0.05)" }}
-                          className="flex flex-col items-center justify-center p-4 gap-3 border border-white/10 rounded-2xl text-white/80 hover:text-white transition-all cursor-pointer"
+                          className={`flex flex-col items-center justify-center p-4 gap-3 border border-white/10 rounded-2xl transition-all cursor-pointer bg-white/5 ${mood.bgHoverClass} ${mood.colorClass || 'text-white/80 hover:text-white'}`}
                         >
                           <mood.icon className="w-6 h-6" strokeWidth={1.5} />
                           <span className="text-xs tracking-wider uppercase font-light text-center">
                             {mood.label}
                           </span>
                         </motion.button>
+
                       ))}
                     </div>
 
@@ -229,6 +243,31 @@ export function PostMoodAssessment({ isOpen, onClose, onComplete, moodBefore }: 
                     <p className="text-white/60 text-xs font-light mb-4 leading-relaxed px-2">
                       {selectedMood.message}
                     </p>
+
+                    {/* Before vs After Transition Card */}
+                    <div className="flex items-center justify-center gap-4 mb-6 py-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                      {moodBefore && (
+                        <>
+                          <div className="flex flex-col items-center flex-1">
+                            <span className="text-[10px] text-white/40 mb-2 uppercase tracking-wider font-light">冥想前</span>
+                            <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white/60 font-light">
+                              {PRE_MOOD_MAP[moodBefore] || "未知狀態"}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="w-8 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-1" />
+                            <ArrowRight className="w-4 h-4 text-white/20" />
+                            <div className="w-8 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mt-1" />
+                          </div>
+                        </>
+                      )}
+                      <div className="flex flex-col items-center flex-1">
+                        <span className="text-[10px] text-white/70 mb-2 uppercase tracking-wider font-light">冥想後</span>
+                        <div className={`px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-xs font-medium ${selectedMood.colorClass}`}>
+                          {selectedMood.label}
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Mindfulness Journaling Textarea */}
                     <div className="flex flex-col text-left gap-1 mb-4 w-full">

@@ -1,7 +1,14 @@
 const DB_NAME = 'zenith_db'
 const STORE_NAME = 'custom_audio'
+const IMAGE_STORE_NAME = 'custom_image'
 
 export interface CustomAudioFile {
+  id: string
+  name: string
+  blob: Blob
+}
+
+export interface CustomImageFile {
   id: string
   name: string
   blob: Blob
@@ -13,13 +20,16 @@ export const initDB = (): Promise<IDBDatabase> => {
       reject(new Error('IndexedDB is only available in the browser'))
       return
     }
-    const request = indexedDB.open(DB_NAME, 1)
+    const request = indexedDB.open(DB_NAME, 2)
     request.onerror = () => reject(request.error)
     request.onsuccess = () => resolve(request.result)
     request.onupgradeneeded = () => {
       const db = request.result
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+      }
+      if (!db.objectStoreNames.contains(IMAGE_STORE_NAME)) {
+        db.createObjectStore(IMAGE_STORE_NAME, { keyPath: 'id' })
       }
     }
   })
@@ -62,3 +72,42 @@ export const deleteCustomAudio = async (): Promise<void> => {
     request.onsuccess = () => resolve()
   })
 }
+
+export const saveCustomImage = async (name: string, blob: Blob): Promise<void> => {
+  const db = await initDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(IMAGE_STORE_NAME, 'readwrite')
+    const store = transaction.objectStore(IMAGE_STORE_NAME)
+    const request = store.put({ id: 'custom', name, blob })
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => resolve()
+  })
+}
+
+export const getCustomImage = async (): Promise<CustomImageFile | null> => {
+  try {
+    const db = await initDB()
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(IMAGE_STORE_NAME, 'readonly')
+      const store = transaction.objectStore(IMAGE_STORE_NAME)
+      const request = store.get('custom')
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => resolve(request.result || null)
+    })
+  } catch (e) {
+    console.error('IndexedDB custom image read failed', e)
+    return null
+  }
+}
+
+export const deleteCustomImage = async (): Promise<void> => {
+  const db = await initDB()
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(IMAGE_STORE_NAME, 'readwrite')
+    const store = transaction.objectStore(IMAGE_STORE_NAME)
+    const request = store.delete('custom')
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => resolve()
+  })
+}
+

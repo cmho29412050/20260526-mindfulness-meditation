@@ -5,10 +5,10 @@
   "main": "main.js",
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
-    "build:desktop": "next build && electron-packager . Zenith --platform=win32 --arch=x64 --out=dist --overwrite",
+    "build:desktop": "next build --webpack && electron-packager . Zenith --platform=win32 --arch=x64 --out=dist --overwrite",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d out --nojekyll --dotfiles"
   },

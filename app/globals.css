@@ -87,6 +87,13 @@
   --color-glow-warm: var(--glow-warm);
   --color-glow-cool: var(--glow-cool);
   --color-glow-sleep: var(--glow-sleep);
+
+  /* Morandi Emotion Colors */
+  --color-emotion-anxious: oklch(0.65 0.15 30); /* Soft rust red */
+  --color-emotion-tired: oklch(0.55 0.12 280); /* Deep muted purple/sleep */
+  --color-emotion-distracted: oklch(0.65 0.10 250); /* Muted blue */
+  --color-emotion-insomnia: oklch(0.40 0.10 280); /* Dark purple */
+  --color-emotion-calm: oklch(0.70 0.12 160); /* Soft sage green */
 }
 
 @layer base {

@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { useMemo } from "react"
 
-type VibeMode = "focus" | "stress" | "sleep" | "home" | "rain"
+type VibeMode = "focus" | "stress" | "sleep" | "home" | "starry_sky" | "stream" | "zen_hall" | "snow_mountain"
 
 interface BreathingSphereProps {
   phase: "inhale" | "hold" | "exhale" | "hold_out" | "idle"
@@ -33,10 +33,25 @@ const vibeColors = {
     secondary: "rgba(254, 205, 211, 0.15)",
     glow: "251, 113, 133",
   },
-  rain: {
-    primary: "rgba(56, 189, 248, 0.35)",       // Sky Blue
-    secondary: "rgba(186, 230, 253, 0.15)",
-    glow: "56, 189, 248",
+  starry_sky: {
+    primary: "rgba(192, 132, 252, 0.35)",     // Starry Purple
+    secondary: "rgba(147, 51, 234, 0.15)",
+    glow: "192, 132, 252",
+  },
+  stream: {
+    primary: "rgba(45, 212, 191, 0.35)",      // Teal Stream
+    secondary: "rgba(13, 148, 136, 0.15)",
+    glow: "45, 212, 191",
+  },
+  zen_hall: {
+    primary: "rgba(214, 211, 209, 0.35)",     // Stone Warm Gray
+    secondary: "rgba(120, 113, 108, 0.15)",
+    glow: "214, 211, 209",
+  },
+  snow_mountain: {
+    primary: "rgba(224, 242, 254, 0.4)",      // Pure White/Ice Blue
+    secondary: "rgba(186, 230, 253, 0.2)",
+    glow: "224, 242, 254",
   },
 }
 
@@ -73,17 +88,17 @@ export function BreathingSphere({ phase, vibeMode, isInSession, duration }: Brea
         scale: {
           duration: 3,
           repeat: Infinity,
-          ease: "easeInOut",
+          ease: "easeInOut" as const,
         },
         boxShadow: {
           duration: 1.5,
-          ease: "easeInOut",
+          ease: "easeInOut" as const,
         }
       }
     }
     return {
       duration: duration,
-      ease: "easeInOut",
+      ease: "easeInOut" as const,
     }
   }, [phase, duration])
 
